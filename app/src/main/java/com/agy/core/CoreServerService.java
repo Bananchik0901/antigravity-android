@@ -38,6 +38,9 @@ public final class CoreServerService extends Service {
         gatewayServer = new com.agy.gateway.SystemGatewayServer(this, logBuffer, com.agy.BuildConfig.GATEWAY_PORT);
         gatewayServer.start();
 
+        // Start local AGU2 bypass proxy for Google gate hosts
+        com.agy.proxy.BypassProxyServer.start(this);
+
         Log.i(TAG, "state paths: HOME=" + getFilesDir().getAbsolutePath()
                 + " appData=" + runtime.getAppDataDir().getAbsolutePath()
                 + " projects=" + runtime.getProjectsDir().getAbsolutePath()
@@ -150,6 +153,7 @@ public final class CoreServerService extends Service {
         if (runtime != null) {
             runtime.stopNetworkMonitor();
         }
+        com.agy.proxy.BypassProxyServer.stop();
         CoreRuntimeState.serverUrl = null;
         CoreRuntimeState.lastError = null;
         CoreRuntimeState.restarting = false;

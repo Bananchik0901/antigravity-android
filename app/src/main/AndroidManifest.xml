@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.agy"
-    android:versionCode="17"
-    android:versionName="2.4.1">
+    package="com.antigravity.mobile"
+    android:versionCode="18"
+    android:versionName="2.31.0-mobile">
 
     <!-- targetSdk 28 is REQUIRED: Android 10+ (W^X) only allows exec of a binary
          from the app data dir when the app targets API <= 28. The core + glibc
@@ -41,12 +41,14 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <permission
-        android:name="com.agy.permission.INTERNAL_BROADCAST"
+        android:name="com.antigravity.mobile.permission.INTERNAL_BROADCAST"
         android:protectionLevel="signature" />
-    <uses-permission android:name="com.agy.permission.INTERNAL_BROADCAST" />
+    <uses-permission android:name="com.antigravity.mobile.permission.INTERNAL_BROADCAST" />
 
     <application
+        android:debuggable="true"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:largeHeap="true"
@@ -59,16 +61,6 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
 
-        <!--
-          MainActivity is NOT the launcher: the LAUNCHER intent-filter lives on
-          two REAL launcher activities (Duolingo-style dynamic icon). Only one
-          is enabled at a time; ThemeManager.applyLauncherIcon() toggles them to
-          match the persisted theme. LauncherDarkActivity is enabled by default
-          so a fresh install has exactly one launcher entry. Real activities
-          (not activity-alias) are required so the OS starting window reads the
-          per-theme SplashTheme and the system splash background follows the
-          in-app theme instead of the system day/night.
-        -->
         <activity
             android:name="com.agy.ui.MainActivity"
             android:exported="false"
@@ -76,10 +68,6 @@
             android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode|density"
             android:windowSoftInputMode="adjustResize" />
-
-        <!-- No deep-link intent-filter: the core's OAuth success URL is left
-             untouched and the app never intercepts the browser handoff, so the
-             original login flow runs unmodified. -->
 
         <activity
             android:name="com.agy.ui.launcher.LauncherDarkActivity"
@@ -115,11 +103,19 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.agy.ui.ProxySettingsActivity"
+            android:label="Настройки Antigravity"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:taskAffinity="com.antigravity.mobile.settings"
+            android:launchMode="singleInstance"
+            android:exported="true" />
+
         <receiver
             android:name="com.agy.runtime.TorchReceiver"
             android:exported="false">
             <intent-filter>
-                <action android:name="com.agy.ACTION_TORCH" />
+                <action android:name="com.antigravity.mobile.ACTION_TORCH" />
             </intent-filter>
         </receiver>
 
@@ -130,7 +126,7 @@
 
         <provider
             android:name="com.agy.util.AppFileProvider"
-            android:authorities="${applicationId}.fileprovider"
+            android:authorities="com.antigravity.mobile.fileprovider"
             android:exported="false"
             android:grantUriPermissions="true" />
     </application>

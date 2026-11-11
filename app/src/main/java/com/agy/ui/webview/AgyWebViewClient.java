@@ -168,6 +168,20 @@ public final class AgyWebViewClient extends WebViewClient {
     }
 
     @Override
+    public boolean onRenderProcessGone(WebView view, android.webkit.RenderProcessGoneDetail detail) {
+        Log.w(TAG, "WebView render process gone (didCrash="
+                + (detail != null && detail.didCrash()) + "), recovering WebView...");
+        if (view != null) {
+            android.view.ViewGroup parent = (android.view.ViewGroup) view.getParent();
+            if (parent != null) {
+                parent.removeView(view);
+            }
+            view.destroy();
+        }
+        return true;
+    }
+
+    @Override
     public void onPageFinished(WebView v, String url) {
         if (listener != null) {
             listener.onPageFinished(url);

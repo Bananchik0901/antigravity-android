@@ -70,8 +70,19 @@ public final class CoreEnvironment {
         env.put("XDG_DATA_DIRS", rm.getRuntimeDir().getAbsolutePath());
         env.put("XDG_DATA_HOME", new File(files, ".local/share").getAbsolutePath());
         env.put("XDG_CONFIG_HOME", new File(files, ".config").getAbsolutePath());
-        // The glibc loader resolves libraries via --library-path; keep bionic's out of the way.
-        env.remove("LD_LIBRARY_PATH");
+        // Configure proxy for language_server to route Google gate hosts through our local proxy
+        env.put("AG_LS_PROXY", "http://127.0.0.1:45162");
+        env.put("https_proxy", "http://127.0.0.1:45162");
+        env.put("HTTPS_PROXY", "http://127.0.0.1:45162");
+
+        // On modern Android (Android 16+), child Bionic/Termux binaries (bash, python3, git)
+        // require LD_LIBRARY_PATH to resolve libandroid-support.so and other dependencies.
+        File prefixLib = new File(prefix, "lib");
+        if (prefixLib.isDirectory()) {
+            env.put("LD_LIBRARY_PATH", prefixLib.getAbsolutePath());
+        } else {
+            env.remove("LD_LIBRARY_PATH");
+        }
         // Do NOT export LD_PRELOAD into the process environment!
         // liblse_compat.so is a GLIBC library; exporting it in env causes Bionic's
         // dynamic linker to crash when executing /system/bin/sh (xdg-open, bridges, termux).

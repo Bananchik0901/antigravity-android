@@ -37,8 +37,8 @@ def main():
 
     is_dev = os.environ.get("DEV_MODE") == "1"
 
-    pkg_base = env.get("PKG", "com.agy")
-    app_id = env.get("PKG_DEV", "com.agy.dev") if is_dev else pkg_base
+    pkg_base = "com.agy"
+    app_id = env.get("PKG", "com.antigravity.mobile")
     port = env.get("PORT_DEV", "45158") if is_dev else env.get("PORT", "45157")
     port_dev = env.get("PORT_DEV", "45158")
     gw_port = env.get("GATEWAY_PORT_DEV", "45161") if is_dev else env.get("GATEWAY_PORT", "45160")
