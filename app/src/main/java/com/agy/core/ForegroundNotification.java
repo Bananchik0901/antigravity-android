@@ -10,8 +10,6 @@ import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.util.Log;
 
-import com.agy.proxy.BypassProxyServer;
-
 /** Builds and updates the ongoing core notification. */
 public final class ForegroundNotification {
 

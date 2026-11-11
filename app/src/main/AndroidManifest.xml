@@ -111,6 +111,14 @@
             android:launchMode="singleInstance"
             android:exported="true" />
 
+        <activity
+            android:name="com.agy.ui.SettingsActivity"
+            android:label="Настройки Antigravity (Vanilla)"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:taskAffinity="com.antigravity.mobile.settings"
+            android:launchMode="singleInstance"
+            android:exported="true" />
+
         <receiver
             android:name="com.agy.runtime.TorchReceiver"
             android:exported="false">

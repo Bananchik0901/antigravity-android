@@ -1,0 +1,187 @@
+import os
+import shutil
+import zipfile
+import hashlib
+import json
+import subprocess
+import sys
+
+WORK_DIR = r"<WORK_DIR>"
+BASE_APK = os.path.join(WORK_DIR, "phone_base.apk")
+APP_DIR = os.path.join(WORK_DIR, "antigravity-android")
+SRC_DIR = os.path.join(APP_DIR, r"app\src\main\java")
+GEN_DIR = os.path.join(APP_DIR, r"build\gen")
+RES_DIR = os.path.join(APP_DIR, r"app\src\main\res")
+MANIFEST_SRC = os.path.join(APP_DIR, r"app\src\main\AndroidManifest.xml")
+
+BUILD_DIR = os.path.join(APP_DIR, r"build\vanilla")
+OBJ_DIR = os.path.join(BUILD_DIR, "obj")
+DEX_DIR = os.path.join(BUILD_DIR, "dex")
+CLASSES_JAR = os.path.join(BUILD_DIR, "classes.jar")
+CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
+RESOURCES_APK = os.path.join(BUILD_DIR, "resources.apk")
+OUTPUT_UNALIGNED = os.path.join(BUILD_DIR, "vanilla_unaligned.apk")
+OUTPUT_ALIGNED = os.path.join(BUILD_DIR, "vanilla_aligned.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.31.0-vanilla.apk")
+
+BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
+AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
+ZIPALIGN = os.path.join(BUILD_TOOLS, "zipalign.exe")
+APKSIGNER = os.path.join(BUILD_TOOLS, "apksigner.bat")
+KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
+R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
+ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
+JAVA_HOME = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK"
+JAVAC_EXE = os.path.join(JAVA_HOME, "bin", "javac.exe")
+JAVA_EXE = os.path.join(JAVA_HOME, "bin", "java.exe")
+
+os.makedirs(OBJ_DIR, exist_ok=True)
+os.makedirs(DEX_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(FINAL_APK), exist_ok=True)
+
+print("=== BUILDING ANTIGRAVITY VANILLA (CLEAN PORT) ===")
+
+# 1. Prepare Vanilla Sources
+# We copy all java files except BypassProxyServer and ProxySettingsActivity.
+# For CoreEnvironment, CoreServerService, ForegroundNotification, we generate vanilla versions.
+TEMP_SRC = os.path.join(BUILD_DIR, "src")
+if os.path.exists(TEMP_SRC):
+    shutil.rmtree(TEMP_SRC)
+shutil.copytree(SRC_DIR, TEMP_SRC)
+
+# Remove bypass classes
+proxy_server = os.path.join(TEMP_SRC, "com", "agy", "proxy", "BypassProxyServer.java")
+if os.path.exists(proxy_server):
+    os.remove(proxy_server)
+proxy_settings = os.path.join(TEMP_SRC, "com", "agy", "ui", "ProxySettingsActivity.java")
+if os.path.exists(proxy_settings):
+    os.remove(proxy_settings)
+
+# Vanilla CoreEnvironment: Direct connection (no AG_LS_PROXY, no https_proxy hijack)
+core_env = os.path.join(TEMP_SRC, "com", "agy", "core", "CoreEnvironment.java")
+with open(core_env, "r", encoding="utf-8") as f:
+    ce_code = f.read()
+# Replace proxy injections with clean comments
+old_proxy_block = """        // Configure proxy for language_server to route Google gate hosts through our local proxy
+        env.put("AG_LS_PROXY", "http://127.0.0.1:45162");
+        env.put("https_proxy", "http://127.0.0.1:45162");
+        env.put("HTTPS_PROXY", "http://127.0.0.1:45162");"""
+new_clean_block = """        // Vanilla port: Direct connection to Google APIs without local proxy interception."""
+ce_code = ce_code.replace(old_proxy_block, new_clean_block)
+with open(core_env, "w", encoding="utf-8") as f:
+    f.write(ce_code)
+
+# Vanilla CoreServerService: No BypassProxyServer start/stop
+core_svc = os.path.join(TEMP_SRC, "com", "agy", "core", "CoreServerService.java")
+with open(core_svc, "r", encoding="utf-8") as f:
+    cs_code = f.read()
+cs_code = cs_code.replace("        // Start local AGU2 bypass proxy for Google gate hosts\n        com.agy.proxy.BypassProxyServer.start(this);\n", "")
+cs_code = cs_code.replace("        com.agy.proxy.BypassProxyServer.stop();\n", "")
+with open(core_svc, "w", encoding="utf-8") as f:
+    f.write(cs_code)
+
+# Vanilla ForegroundNotification: Click opens SettingsActivity
+fn_file = os.path.join(TEMP_SRC, "com", "agy", "core", "ForegroundNotification.java")
+with open(fn_file, "r", encoding="utf-8") as f:
+    fn_code = f.read()
+fn_code = fn_code.replace("com.agy.ui.ProxySettingsActivity.class", "com.agy.ui.SettingsActivity.class")
+with open(fn_file, "w", encoding="utf-8") as f:
+    f.write(fn_code)
+
+print("[1/5] Compiling Vanilla Java classes with javac...")
+java_files = []
+for d in [TEMP_SRC, GEN_DIR]:
+    for root, _, files in os.walk(d):
+        for f in files:
+            if f.endswith(".java"):
+                java_files.append(os.path.join(root, f).replace("\\", "/"))
+
+sources_file = os.path.join(BUILD_DIR, "vanilla_sources.txt")
+with open(sources_file, "w", encoding="utf-8") as f:
+    for jf in java_files:
+        f.write(f'"{jf}"\n')
+
+cmd_javac = [
+    JAVAC_EXE,
+    "-encoding", "UTF-8",
+    "-source", "1.8",
+    "-target", "1.8",
+    "-d", OBJ_DIR,
+    "-cp", ANDROID_JAR,
+    f"@{sources_file}"
+]
+subprocess.run(cmd_javac, check=True)
+print("  javac compiled vanilla classes successfully.")
+
+print("[2/5] Dexing classes into classes.dex...")
+with zipfile.ZipFile(CLASSES_JAR, "w", compression=zipfile.ZIP_DEFLATED) as z:
+    for root, _, files in os.walk(OBJ_DIR):
+        for f in files:
+            if f.endswith(".class"):
+                full = os.path.join(root, f)
+                rel = os.path.relpath(full, OBJ_DIR)
+                z.write(full, rel)
+
+cmd_d8 = [JAVA_EXE, "-cp", R8_JAR, "com.android.tools.r8.D8", "--min-api", "24", "--output", DEX_DIR, "--lib", ANDROID_JAR, CLASSES_JAR]
+subprocess.run(cmd_d8, check=True)
+print(f"  D8 generated vanilla classes.dex ({os.path.getsize(CLASSES_DEX)} bytes)")
+
+print("[3/5] Packaging base resources with aapt...")
+if os.path.exists(RESOURCES_APK):
+    os.remove(RESOURCES_APK)
+cmd_aapt = [AAPT, "package", "-f", "-M", MANIFEST_SRC, "-S", RES_DIR, "-I", ANDROID_JAR, "-F", RESOURCES_APK, "--auto-add-overlay"]
+subprocess.run(cmd_aapt, check=True)
+print(f"  aapt generated resources.apk ({os.path.getsize(RESOURCES_APK)} bytes)")
+
+print("[4/5] Packaging unaligned Vanilla APK with STOCK liblanguage_server.so...")
+# Read stock binary and manifest directly from phone_base.apk
+with zipfile.ZipFile(BASE_APK, "r") as zin:
+    stock_ls_bytes = zin.read("assets/runtime/bin/liblanguage_server.so")
+    stock_manifest_bytes = zin.read("assets/runtime/manifest.json")
+
+print(f"  Stock liblanguage_server.so size: {len(stock_ls_bytes)} bytes, SHA-256: {hashlib.sha256(stock_ls_bytes).hexdigest()}")
+
+with open(CLASSES_DEX, "rb") as f:
+    dex_bytes = f.read()
+
+if os.path.exists(OUTPUT_UNALIGNED):
+    os.remove(OUTPUT_UNALIGNED)
+
+with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
+    with zipfile.ZipFile(RESOURCES_APK, "r") as zres:
+        for item in zres.infolist():
+            zout.writestr(item, zres.read(item.filename))
+
+    zout.writestr("classes.dex", dex_bytes, compress_type=zipfile.ZIP_DEFLATED)
+
+    with zipfile.ZipFile(BASE_APK, "r") as zin:
+        for item in zin.infolist():
+            if item.filename.startswith("META-INF/") or item.filename in ("AndroidManifest.xml", "resources.arsc", "classes.dex") or item.filename.startswith("res/"):
+                continue
+            # Keep 100% stock files for runtime
+            if item.filename == "assets/runtime/bin/liblanguage_server.so":
+                zout.writestr(item, stock_ls_bytes)
+            elif item.filename == "assets/runtime/manifest.json":
+                zout.writestr(item, stock_manifest_bytes)
+            else:
+                zout.writestr(item, zin.read(item.filename))
+
+print(f"  Unaligned APK created: {os.path.getsize(OUTPUT_UNALIGNED)} bytes")
+
+print("[5/5] Aligning and signing final Vanilla APK...")
+if os.path.exists(OUTPUT_ALIGNED):
+    os.remove(OUTPUT_ALIGNED)
+subprocess.run([ZIPALIGN, "-f", "4", OUTPUT_UNALIGNED, OUTPUT_ALIGNED], check=True)
+
+if os.path.exists(FINAL_APK):
+    os.remove(FINAL_APK)
+
+env = os.environ.copy()
+env["JAVA_HOME"] = JAVA_HOME
+env["PATH"] = os.path.join(JAVA_HOME, "bin") + ";" + env["PATH"]
+
+cmd_sign = [APKSIGNER, "sign", "--ks", KEYSTORE, "--ks-pass", "pass:android", "--key-pass", "pass:android", "--ks-key-alias", "androiddebugkey", "--out", FINAL_APK, OUTPUT_ALIGNED]
+subprocess.run(cmd_sign, check=True, env=env)
+
+print(f"\nSUCCESS! Vanilla APK generated at:")
+print(f"  {FINAL_APK} ({os.path.getsize(FINAL_APK)} bytes)")
