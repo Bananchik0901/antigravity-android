@@ -88,6 +88,10 @@ with zipfile.ZipFile(BASE_APK, "r") as zin:
 with open(CLASSES_DEX, "rb") as f:
     dex_bytes = f.read()
 
+BRIDGE_CORE_JS = os.path.join(APP_DIR, r"web\generated\bridge.core.js")
+with open(BRIDGE_CORE_JS, "r", encoding="utf-8") as f:
+    bridge_core_bytes = f.read().replace("\r\n", "\n").encode("utf-8")
+
 if os.path.exists(OUTPUT_UNALIGNED):
     os.remove(OUTPUT_UNALIGNED)
 
@@ -106,6 +110,8 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
                 zout.writestr(item, ls_bytes)
             elif item.filename == "assets/runtime/manifest.json":
                 zout.writestr(item, new_manifest_bytes)
+            elif item.filename == "assets/web/generated/bridge.core.js":
+                zout.writestr(item, bridge_core_bytes)
             else:
                 zout.writestr(item, zin.read(item.filename))
 

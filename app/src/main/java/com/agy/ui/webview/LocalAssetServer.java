@@ -59,7 +59,11 @@ public final class LocalAssetServer {
                 String encoding = MimeTypes.isTextMime(mime) ? "UTF-8" : null;
                 Map<String, String> headers = new HashMap<>();
                 headers.put("Access-Control-Allow-Origin", "*");
-                headers.put("Cache-Control", "public, max-age=31536000, immutable");
+                if (relPath.startsWith("generated/") || relPath.endsWith(".html")) {
+                    headers.put("Cache-Control", "no-cache, must-revalidate");
+                } else {
+                    headers.put("Cache-Control", "public, max-age=31536000, immutable");
+                }
                 headers.put("Content-Length", String.valueOf(target.length()));
                 InputStream bis = new BufferedInputStream(new FileInputStream(target), 64 * 1024);
                 return new WebResourceResponse(mime, encoding, 200, "OK", headers, bis);

@@ -38,6 +38,15 @@ public final class WebViewFactory {
 
         WebSettingsFactory.configure(view);
 
+        // Keep WebView renderer process at IMPORTANT priority even when the Activity
+        // is backgrounded, so long-running agent streams do not stall in background.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                view.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+            } catch (Exception ignored) {
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && BuildConfig.DEBUG) {
             WebView.setWebContentsDebuggingEnabled(true);
         }

@@ -7,6 +7,7 @@ import android.webkit.WebView;
 public final class WebViewLifecycle {
 
     private static final String TAG = "WebViewHost";
+    private static volatile long lastPauseAtMs = 0L;
 
     private WebViewLifecycle() {
     }
@@ -16,27 +17,37 @@ public final class WebViewLifecycle {
         if (webView == null) {
             return;
         }
+        long awayMs = lastPauseAtMs > 0L ? Math.max(0L, System.currentTimeMillis() - lastPauseAtMs) : 0L;
+        lastPauseAtMs = 0L;
         try {
             webView.onResume();
             webView.resumeTimers();
             webView.evaluateJavascript(
-                    "(function(){ try { window.dispatchEvent(new CustomEvent('agy:host-resume')); } catch(e){} })();",
+                    "(function(){ try {"
+                    + " window.dispatchEvent(new CustomEvent('agy:host-resume', { detail: { awayMs: " + awayMs + " } }));"
+                    + " window.dispatchEvent(new Event('focus'));"
+                    + "} catch(e){} })();",
                     null);
         } catch (Exception e) {
             Log.w(TAG, "failed to resume webView", e);
         }
     }
 
-    /** Pauses page callbacks and timers while the host activity is not visible. */
+    /**
+     * Marks background transition without pausing WebView timers or JS execution,
+     * so background agent streams and reconnect loops stay alive.
+     */
     public static void pause(WebView webView) {
         if (webView == null) {
             return;
         }
+        lastPauseAtMs = System.currentTimeMillis();
         try {
-            webView.onPause();
-            webView.pauseTimers();
+            webView.evaluateJavascript(
+                    "(function(){ try { window.dispatchEvent(new CustomEvent('agy:host-pause')); } catch(e){} })();",
+                    null);
         } catch (Exception e) {
-            Log.w(TAG, "failed to pause webView", e);
+            Log.w(TAG, "failed to notify webView pause", e);
         }
     }
 

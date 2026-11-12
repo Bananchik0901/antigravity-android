@@ -48,6 +48,169 @@ function installFetchRewrite() {
     });
   }
 
+  var activeStreams = typeof Set === 'function' ? new Set() : null;
+  var lastHiddenAt = 0;
+
+  function isStreamUrl(u) {
+    return typeof u === 'string' && (u.indexOf('/Stream') !== -1 || u.indexOf('StreamAgentState') !== -1 || u.indexOf('StreamCascade') !== -1);
+  }
+
+  function fetchWithStreamTracking(u, opts, origResource, useStartupRetry) {
+    var urlStr = typeof u === 'string' ? u : (origResource && origResource.url) || '';
+    if (!activeStreams || !isStreamUrl(urlStr) || typeof AbortController !== 'function' || typeof ReadableStream !== 'function') {
+      return useStartupRetry ? fetchWithStartupRetry(u, opts, 30) : origFetch(u, opts);
+    }
+
+    var streamCtrl = new AbortController();
+    var callerSignal = (opts && opts.signal) || (origResource && typeof origResource === 'object' ? origResource.signal : null);
+    var onCallerAbort = null;
+    if (callerSignal) {
+      if (callerSignal.aborted) {
+        try { streamCtrl.abort(callerSignal.reason); } catch (e) { streamCtrl.abort(); }
+      } else {
+        onCallerAbort = function () {
+          try { streamCtrl.abort(callerSignal.reason); } catch (e) { streamCtrl.abort(); }
+        };
+        callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+      }
+    }
+
+    var entry = {
+      ctrl: streamCtrl,
+      url: urlStr,
+      lastDataAt: Date.now(),
+      forceClose: null,
+      cleaned: false
+    };
+    activeStreams.add(entry);
+
+    function cleanup() {
+      if (entry.cleaned) return;
+      entry.cleaned = true;
+      activeStreams.delete(entry);
+      if (callerSignal && onCallerAbort) {
+        try { callerSignal.removeEventListener('abort', onCallerAbort); } catch (e) {}
+      }
+    }
+
+    var nextOpts = {};
+    if (opts) {
+      for (var k in opts) {
+        if (Object.prototype.hasOwnProperty.call(opts, k)) nextOpts[k] = opts[k];
+      }
+    }
+    nextOpts.signal = streamCtrl.signal;
+
+    var pending = useStartupRetry ? fetchWithStartupRetry(u, nextOpts, 30) : origFetch(u, nextOpts);
+    return pending.then(function (resp) {
+      if (!resp || !resp.body || typeof resp.body.getReader !== 'function') {
+        cleanup();
+        return resp;
+      }
+      var contentType = '';
+      try { contentType = (resp.headers && resp.headers.get('content-type')) || ''; } catch (e) {}
+      var isConnectStream = contentType.indexOf('connect+') !== -1;
+      var origReader = resp.body.getReader();
+      var resolveForceClose = null;
+      var forceClosePromise = new Promise(function (resolve) {
+        resolveForceClose = resolve;
+      });
+
+      entry.forceClose = function () {
+        if (entry.cleaned) return;
+        cleanup();
+        if (resolveForceClose) {
+          resolveForceClose({ __agyForceClose: true });
+        }
+        try { origReader.cancel('agy:resume-refresh').catch(function () {}); } catch (e) {}
+        try { streamCtrl.abort(); } catch (e) {}
+      };
+
+      var wrappedBody = new ReadableStream({
+        pull: function (controller) {
+          return Promise.race([origReader.read(), forceClosePromise]).then(function (res) {
+            if (res && res.__agyForceClose) {
+              if (isConnectStream && typeof Uint8Array === 'function') {
+                // Valid empty Connect EndStreamResponse frame (flags=2, len=2, "{}")
+                // allows consumeAgentStateStream to exit cleanly and rehydrate.
+                controller.enqueue(new Uint8Array([2, 0, 0, 0, 2, 123, 125]));
+              }
+              controller.close();
+              return;
+            }
+            entry.lastDataAt = Date.now();
+            if (res.done) {
+              cleanup();
+              controller.close();
+            } else {
+              controller.enqueue(res.value);
+            }
+          }, function (err) {
+            cleanup();
+            controller.error(err);
+          });
+        },
+        cancel: function (reason) {
+          cleanup();
+          try { streamCtrl.abort(); } catch (e) {}
+          return origReader.cancel(reason);
+        }
+      });
+
+      var wrappedResp = new Response(wrappedBody, {
+        status: resp.status,
+        statusText: resp.statusText,
+        headers: resp.headers
+      });
+      try {
+        if (resp.url) Object.defineProperty(wrappedResp, 'url', { value: resp.url });
+      } catch (e) {}
+      return wrappedResp;
+    }, function (err) {
+      cleanup();
+      throw err;
+    });
+  }
+
+  function recoverStalledStreams(awayMs) {
+    if (!activeStreams || activeStreams.size === 0) return;
+    var resumeAt = Date.now();
+    setTimeout(function () {
+      activeStreams.forEach(function (entry) {
+        if (!entry.cleaned && entry.lastDataAt < resumeAt && (awayMs >= 2000 || (Date.now() - entry.lastDataAt) >= 3000)) {
+          try {
+            console.log('[AGY bridge.core] Refreshing stale stream after background (' + awayMs + 'ms):', entry.url);
+            if (entry.forceClose) entry.forceClose();
+          } catch (e) {}
+        }
+      });
+    }, 800);
+  }
+
+  try {
+    global.addEventListener('agy:host-pause', function () {
+      lastHiddenAt = Date.now();
+    });
+    global.addEventListener('agy:host-resume', function (ev) {
+      var away = (ev && ev.detail && typeof ev.detail.awayMs === 'number')
+        ? ev.detail.awayMs
+        : (lastHiddenAt ? Date.now() - lastHiddenAt : 0);
+      lastHiddenAt = 0;
+      recoverStalledStreams(away);
+    });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) {
+          if (!lastHiddenAt) lastHiddenAt = Date.now();
+        } else if (lastHiddenAt) {
+          var away = Date.now() - lastHiddenAt;
+          lastHiddenAt = 0;
+          recoverStalledStreams(away);
+        }
+      });
+    }
+  } catch (e) {}
+
   global.fetch = function (resource, init) {
     try {
       // Request object: rebuild against the core origin, keep method/body.
@@ -80,11 +243,11 @@ function installFetchRewrite() {
                 body: bodyData,
                 credentials: 'omit'
               };
-              return fetchWithStartupRetry(targetUrl, nextOpts, 30);
+              return fetchWithStreamTracking(targetUrl, nextOpts, resource, true);
             });
           } catch (e) { warn('fetch rewrite (Request)', e); }
         }
-        return origFetch(resource, init);
+        return fetchWithStreamTracking(resource, init, resource, false);
       }
 
       // String URL: the Connect/grpc-web transport's common path.
@@ -102,8 +265,9 @@ function installFetchRewrite() {
           }
           next.headers = headers;
 
-          return fetchWithStartupRetry(url, next, 30);
+          return fetchWithStreamTracking(url, next, null, true);
         }
+        return fetchWithStreamTracking(resource, init, null, false);
       }
     } catch (e) { warn('fetch rewrite', e); }
     return origFetch(resource, init);
