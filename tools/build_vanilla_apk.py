@@ -148,6 +148,17 @@ BRIDGE_CORE_JS = os.path.join(APP_DIR, r"web\generated\bridge.core.js")
 with open(BRIDGE_CORE_JS, "r", encoding="utf-8") as f:
     bridge_core_bytes = f.read().replace("\r\n", "\n").encode("utf-8")
 
+MAIN_SRC_JS = os.path.join(APP_DIR, r"web\main.js")
+MAIN_GEN_JS = os.path.join(APP_DIR, r"web\generated\main.js")
+PATCH_MAIN_PY = os.path.join(APP_DIR, r"web\patch_main.py")
+shutil.copy2(MAIN_SRC_JS, MAIN_GEN_JS)
+subprocess.run([sys.executable, PATCH_MAIN_PY, MAIN_GEN_JS], check=True)
+with open(MAIN_GEN_JS, "r", encoding="utf-8") as f:
+    main_js_clean = f.read().replace("\r\n", "\n")
+with open(MAIN_GEN_JS, "w", encoding="utf-8", newline="\n") as f:
+    f.write(main_js_clean)
+main_js_bytes = main_js_clean.encode("utf-8")
+
 if os.path.exists(OUTPUT_UNALIGNED):
     os.remove(OUTPUT_UNALIGNED)
 
@@ -169,6 +180,8 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
                 zout.writestr(item, stock_manifest_bytes)
             elif item.filename == "assets/web/generated/bridge.core.js":
                 zout.writestr(item, bridge_core_bytes)
+            elif item.filename == "assets/web/generated/main.js":
+                zout.writestr(item, main_js_bytes)
             else:
                 zout.writestr(item, zin.read(item.filename))
 
