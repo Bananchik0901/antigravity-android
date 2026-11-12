@@ -15,7 +15,7 @@ CLASSES_JAR = os.path.join(APP_DIR, r"build\classes.jar")
 CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, "Antigravity-2.31.0-mobile.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.31.2-mobile.apk")
 
 BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -25,7 +25,35 @@ KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
 R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
 ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
 JAVA_HOME = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK"
+JAVAC_EXE = os.path.join(JAVA_HOME, "bin", "javac.exe")
 JAVA_EXE = os.path.join(JAVA_HOME, "bin", "java.exe")
+
+print("[0/5] Compiling Java classes with javac...", flush=True)
+SRC_DIR = os.path.join(APP_DIR, r"app\src\main\java")
+GEN_DIR = os.path.join(APP_DIR, r"build\gen")
+java_files = []
+for d in [SRC_DIR, GEN_DIR]:
+    for root, _, files in os.walk(d):
+        for f in files:
+            if f.endswith(".java"):
+                java_files.append(os.path.join(root, f).replace("\\", "/"))
+
+sources_file = os.path.join(APP_DIR, r"build\java_sources.txt")
+with open(sources_file, "w", encoding="utf-8") as f:
+    for jf in java_files:
+        f.write(f'"{jf}"\n')
+
+cmd_javac = [
+    JAVAC_EXE,
+    "-encoding", "UTF-8",
+    "-source", "1.8",
+    "-target", "1.8",
+    "-d", OBJ_DIR,
+    "-cp", ANDROID_JAR,
+    f"@{sources_file}"
+]
+subprocess.run(cmd_javac, check=True)
+print("  javac compiled classes successfully.", flush=True)
 
 print("[1/5] Dexing compiled classes...", flush=True)
 with zipfile.ZipFile(CLASSES_JAR, "w", compression=zipfile.ZIP_DEFLATED) as z:

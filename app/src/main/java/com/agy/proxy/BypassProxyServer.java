@@ -147,10 +147,48 @@ public final class BypassProxyServer {
         if (!isProxyEnabled(context)) {
             return "🔴 Отключено";
         }
-        if (instance != null && instance.hasValidKey()) {
+        File lic = new File(context.getFilesDir(), "license_key.txt");
+        if ((instance != null && instance.hasValidKey()) || lic.exists()) {
             return "🟢 Активно";
         }
         return "⚪ Ключ не установлен";
+    }
+
+    public static boolean verifyLicenseKey(String key) {
+        if (key == null) return false;
+        StringBuilder sb = new StringBuilder();
+        for (char c : key.toCharArray()) {
+            if (Character.isLetterOrDigit(c)) {
+                sb.append(Character.toUpperCase(c));
+            }
+        }
+        String k = sb.toString();
+        if (k.length() != 24) return false;
+
+        String nonce = k.substring(0, 12);
+        String sig = k.substring(12);
+
+        String[] versions = new String[]{"2.31.2", "2.31.1", "2.31.0"};
+        String baseSecret = ")Q.QFyU+oOs#Z:jmtxonGfZi+w#|XG4<";
+
+        for (String v : versions) {
+            String secret = baseSecret + "::" + v;
+            try {
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
+                md.update(nonce.getBytes(StandardCharsets.UTF_8));
+                md.update(secret.getBytes(StandardCharsets.UTF_8));
+                byte[] digest = md.digest();
+                StringBuilder hex = new StringBuilder();
+                for (int i = 0; i < 6; i++) {
+                    hex.append(String.format("%02X", digest[i]));
+                }
+                if (hex.toString().equals(sig)) {
+                    return true;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return false;
     }
 
     public static synchronized String updateCredentials(Context context, String input) throws Exception {
@@ -158,13 +196,27 @@ public final class BypassProxyServer {
             throw new IllegalArgumentException("Ключ не может быть пустым");
         }
         String clean = input.trim();
+
+        if (clean.length() == 24 || verifyLicenseKey(clean)) {
+            if (verifyLicenseKey(clean)) {
+                File licFile = new File(context.getFilesDir(), "license_key.txt");
+                try (FileOutputStream fos = new FileOutputStream(licFile)) {
+                    fos.write(clean.getBytes(StandardCharsets.UTF_8));
+                    fos.flush();
+                }
+                return "Лицензионный ключ 2.31.2 успешно активирован!";
+            } else {
+                throw new IllegalArgumentException("Неверный лицензионный ключ (проверьте символы ключа из группы)");
+            }
+        }
+
         String plaintext;
         if (clean.startsWith("agk1.")) {
             plaintext = unwrapToken(clean);
         } else if (clean.startsWith("AGU2")) {
             plaintext = clean;
         } else {
-            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ agk1... или AGU2...)");
+            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ версии 2.31.2 или токен agk1...)");
         }
 
         File keyFile = new File(context.getFilesDir(), "bypass_key.txt");
