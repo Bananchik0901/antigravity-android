@@ -169,9 +169,14 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     zout.writestr("classes.dex", dex_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
+    with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
+        zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
+    version_meta_bytes = json.dumps({"core_version": "2.31.2", "bypass_version": "none"}, indent=2).encode("utf-8")
+    zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
+
     with zipfile.ZipFile(BASE_APK, "r") as zin:
         for item in zin.infolist():
-            if item.filename.startswith("META-INF/") or item.filename in ("AndroidManifest.xml", "resources.arsc", "classes.dex") or item.filename.startswith("res/"):
+            if item.filename.startswith("META-INF/") or item.filename in ("AndroidManifest.xml", "resources.arsc", "classes.dex", "assets/updater/debug.p12", "assets/updater/version_meta.json") or item.filename.startswith("res/"):
                 continue
             # Keep 100% stock files for runtime
             if item.filename == "assets/runtime/bin/liblanguage_server.so":

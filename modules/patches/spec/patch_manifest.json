@@ -45,6 +45,11 @@
       "name": "pty_shell",
       "description": "Retarget hardcoded PTY shell path: /bin/bash -> /bin///sh to use Android /system/bin/sh",
       "expected": 1
+    },
+    {
+      "name": "disable_sandbox",
+      "description": "Force (*RunCommandHandler).isSandboxEnabled to return false on Android kernels without user/pid namespaces",
+      "expected": 1
     }
   ]
 }

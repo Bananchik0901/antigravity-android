@@ -165,6 +165,7 @@ public class MainActivity extends Activity
         requestStoragePermissions();
 
         startCoreService();
+        com.agy.updater.UpdateUiHelper.checkAtStartup(this);
     }
 
     private void startCoreService() {

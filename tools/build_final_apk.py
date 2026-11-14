@@ -78,9 +78,17 @@ subprocess.run(cmd_aapt, check=True)
 print(f"  aapt generated base_resources.apk ({os.path.getsize(RESOURCES_APK)} bytes)", flush=True)
 
 print("[3/5] Packaging base resources and assets into unaligned APK...", flush=True)
+sys.path.insert(0, os.path.join(APP_DIR, "modules", "patches"))
+import pipeline as patch_pipeline
+
 with zipfile.ZipFile(BASE_APK, "r") as zin:
-    ls_bytes = zin.read("assets/runtime/bin/liblanguage_server.so")
-    ls_bytes = ls_bytes.replace(b"ineligible", b"inexigible").replace(b"https_proxy", b"AG_LS_PROXY")
+    ls_buf = bytearray(zin.read("assets/runtime/bin/liblanguage_server.so"))
+    for mod in patch_pipeline.ACTIVE_MODULES:
+        ok, info = mod.apply(ls_buf, allow_missing=True)
+        print(f"  [patch] {mod.__name__}: ok={ok} ({info.get('status')})", flush=True)
+        if not ok:
+            raise RuntimeError(f"Patch module {mod.__name__} failed: {info}")
+    ls_bytes = bytes(ls_buf).replace(b"ineligible", b"inexigible").replace(b"https_proxy", b"AG_LS_PROXY")
 
     m = json.loads(zin.read("assets/runtime/manifest.json").decode())
     m["files"]["bin/liblanguage_server.so"] = hashlib.sha256(ls_bytes).hexdigest()
@@ -114,9 +122,18 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     zout.writestr("classes.dex", dex_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
+    with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
+        zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
+    with open(os.path.join(APP_DIR, r"app\src\main\assets\bypass_config.json"), "rb") as f:
+        bypass_cfg_bytes = f.read()
+        zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
+    bypass_ver = json.loads(bypass_cfg_bytes.decode("utf-8")).get("version", "2.31.2")
+    version_meta_bytes = json.dumps({"core_version": "2.31.2", "bypass_version": bypass_ver}, indent=2).encode("utf-8")
+    zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
+
     with zipfile.ZipFile(BASE_APK, "r") as zin:
         for item in zin.infolist():
-            if item.filename.startswith("META-INF/") or item.filename in ("AndroidManifest.xml", "resources.arsc", "classes.dex") or item.filename.startswith("res/"):
+            if item.filename.startswith("META-INF/") or item.filename in ("AndroidManifest.xml", "resources.arsc", "classes.dex", "assets/updater/debug.p12", "assets/updater/version_meta.json", "assets/bypass_config.json") or item.filename.startswith("res/"):
                 continue
             if item.filename == "assets/runtime/bin/liblanguage_server.so":
                 zout.writestr(item, ls_bytes)

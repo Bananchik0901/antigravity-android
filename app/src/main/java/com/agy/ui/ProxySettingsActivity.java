@@ -211,6 +211,38 @@ public class ProxySettingsActivity extends Activity {
 
         updateShizukuStatusUi();
 
+        // --- SECTION 3: AUTO-UPDATE & ROLLBACK ---
+        addSectionHeader(root, "3. Обновления и откат (Ядро / Обход)");
+
+        TextView tvUpdateInfo = new TextView(this);
+        tvUpdateInfo.setTextColor(Color.parseColor("#CCCCCC"));
+        tvUpdateInfo.setTextSize(12);
+        tvUpdateInfo.setTypeface(Typeface.MONOSPACE);
+        tvUpdateInfo.setPadding(0, 0, 0, dp(8));
+        String updateStatus = "Ядро: " + com.agy.updater.UpdatePrefs.getInstalledCoreVersion(this)
+                + "\nОбход: " + com.agy.updater.UpdatePrefs.getInstalledBypassVersion(this)
+                + "\nAPK vCode: " + com.agy.updater.UpdatePrefs.getCurrentVersionCode(this);
+        if (com.agy.updater.UpdatePrefs.hasBackup(this)) {
+            updateStatus += "\nБэкап: " + com.agy.updater.UpdatePrefs.getBackupSummary(this);
+        }
+        tvUpdateInfo.setText(updateStatus);
+        root.addView(tvUpdateInfo);
+
+        Button btnCheckUpdates = createButton("🔄 Проверить обновления");
+        btnCheckUpdates.setBackgroundColor(Color.parseColor("#1976D2"));
+        btnCheckUpdates.setOnClickListener(v -> {
+            com.agy.updater.UpdatePrefs.clearSkippedAndRemind(this);
+            com.agy.updater.UpdateUiHelper.checkManual(this, null);
+        });
+        root.addView(btnCheckUpdates);
+
+        if (com.agy.updater.UpdatePrefs.hasBackup(this)) {
+            Button btnRollback = createButton("⏪ Откатить обновление");
+            btnRollback.setBackgroundColor(Color.parseColor("#D84315"));
+            btnRollback.setOnClickListener(v -> com.agy.updater.UpdateUiHelper.confirmAndRollback(this));
+            root.addView(btnRollback);
+        }
+
         // Close button
         Button btnClose = createButton("Закрыть");
         btnClose.setBackgroundColor(Color.parseColor("#2A2A2E"));

@@ -44,12 +44,24 @@ public final class BypassProxyServer {
     // Baked AES/HMAC secret for agk1 token unwrapping
     private static final String BAKED_T_HEX = "";
 
-    private static final String[] PROXY_SERVERS = new String[] {
+    private static final String[] DEFAULT_PROXY_SERVERS = new String[] {
             "<relay-host>",
             "<relay-host-2>",
             "<relay-host-3>"
     };
-    private static final int PROXY_PORT = 443;
+    private static final int DEFAULT_PROXY_PORT = 443;
+    private static final String DEFAULT_ALPN = "agu/2";
+    private static final String[] DEFAULT_GATE_HOSTS = new String[] {
+            "cloudcode-pa.googleapis.com",
+            "daily-cloudcode-pa.googleapis.com",
+            "aicode.googleapis.com"
+    };
+
+    private volatile String[] proxyServers = DEFAULT_PROXY_SERVERS;
+    private volatile int proxyPort = DEFAULT_PROXY_PORT;
+    private volatile String alpnProtocol = DEFAULT_ALPN;
+    private volatile String[] gateHosts = DEFAULT_GATE_HOSTS;
+    private volatile String bypassVersion = "2.31.2";
 
     private static volatile BypassProxyServer instance;
 
@@ -71,7 +83,76 @@ public final class BypassProxyServer {
     public static synchronized void start(Context context) {
         if (instance == null) {
             instance = new BypassProxyServer(context.getApplicationContext(), DEFAULT_PORT);
+            instance.loadDynamicConfig();
             instance.startServer();
+        }
+    }
+
+    public static synchronized void reloadConfig(Context context) {
+        if (instance != null) {
+            instance.loadDynamicConfig();
+        }
+    }
+
+    public String getBypassVersion() {
+        return bypassVersion;
+    }
+
+    private void loadDynamicConfig() {
+        String jsonStr = null;
+        File overrideFile = new File(context.getFilesDir(), "bypass_config.json");
+        if (overrideFile.exists() && overrideFile.isFile()) {
+            try (FileInputStream fis = new FileInputStream(overrideFile)) {
+                byte[] buf = new byte[(int) Math.min(overrideFile.length(), 131072)];
+                int n = fis.read(buf);
+                if (n > 0) jsonStr = new String(buf, 0, n, StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed reading override bypass_config.json: " + e.getMessage());
+            }
+        }
+        if (jsonStr == null) {
+            try (InputStream is = context.getAssets().open("bypass_config.json")) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = is.read(buf)) != -1) baos.write(buf, 0, n);
+                jsonStr = baos.toString("UTF-8");
+            } catch (Exception ignored) {
+            }
+        }
+        if (jsonStr == null) return;
+        try {
+            org.json.JSONObject obj = new org.json.JSONObject(jsonStr);
+            if (obj.has("version")) {
+                bypassVersion = obj.optString("version", bypassVersion);
+            }
+            if (obj.has("proxy_port")) {
+                int p = obj.optInt("proxy_port", DEFAULT_PROXY_PORT);
+                if (p > 0 && p <= 65535) proxyPort = p;
+            }
+            if (obj.has("alpn")) {
+                String a = obj.optString("alpn", DEFAULT_ALPN);
+                if (!a.isEmpty()) alpnProtocol = a;
+            }
+            if (obj.has("proxy_servers")) {
+                org.json.JSONArray arr = obj.getJSONArray("proxy_servers");
+                if (arr.length() > 0) {
+                    String[] list = new String[arr.length()];
+                    for (int i = 0; i < arr.length(); i++) list[i] = arr.getString(i);
+                    proxyServers = list;
+                }
+            }
+            if (obj.has("gate_hosts")) {
+                org.json.JSONArray arr = obj.getJSONArray("gate_hosts");
+                if (arr.length() > 0) {
+                    String[] list = new String[arr.length()];
+                    for (int i = 0; i < arr.length(); i++) list[i] = arr.getString(i).toLowerCase().trim();
+                    gateHosts = list;
+                }
+            }
+            Log.i(TAG, "Loaded bypass config v" + bypassVersion + " (" + proxyServers.length + " servers, " + gateHosts.length + " gate hosts)");
+        } catch (Exception e) {
+            Log.w(TAG, "Invalid bypass_config.json: " + e.getMessage());
         }
     }
 
@@ -454,23 +535,24 @@ public final class BypassProxyServer {
         while (h.endsWith(".")) {
             h = h.substring(0, h.length() - 1);
         }
-        return h.equals("cloudcode-pa.googleapis.com")
-                || h.equals("daily-cloudcode-pa.googleapis.com")
-                || h.equals("aicode.googleapis.com");
+        for (String gate : gateHosts) {
+            if (h.equals(gate)) return true;
+        }
+        return false;
     }
 
     private Socket connectAgu2Tunnel(String targetHost, int targetPort) {
-        for (String proxyHost : PROXY_SERVERS) {
+        for (String proxyHost : proxyServers) {
             try {
                 SSLContext sslContext = SSLContext.getInstance("TLS");
                 sslContext.init(null, null, null);
                 SSLSocketFactory factory = sslContext.getSocketFactory();
 
                 SSLSocket sslSocket = (SSLSocket) factory.createSocket();
-                sslSocket.connect(new InetSocketAddress(proxyHost, PROXY_PORT), 8000);
+                sslSocket.connect(new InetSocketAddress(proxyHost, proxyPort), 8000);
                 sslSocket.setSoTimeout(15000);
 
-                configureAlpn(sslSocket, "agu/2");
+                configureAlpn(sslSocket, alpnProtocol);
                 sslSocket.startHandshake();
 
                 long ts = System.currentTimeMillis() / 1000L;
