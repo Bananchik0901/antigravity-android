@@ -250,7 +250,7 @@ public class ProxySettingsActivity extends Activity {
         root.addView(btnClose);
 
         TextView tvAuthor = new TextView(this);
-        tvAuthor.setText("made by @bananchik0901");
+        tvAuthor.setText("сделано @bananchik0901 обход @nova_txt");
         tvAuthor.setTextSize(14);
         tvAuthor.setTypeface(null, Typeface.BOLD);
         tvAuthor.setTextColor(Color.parseColor("#B0BEC5"));

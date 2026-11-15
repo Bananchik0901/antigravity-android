@@ -232,3 +232,13 @@ print('Туннель успешно установлен!')
    ```
    Должна появиться запись:
    `I BypassProxy: AGU2 tunnel established via <relay-host> -> daily-cloudcode-pa.googleapis.com`
+
+---
+
+## 8. Динамическая конфигурация обхода (`bypass_config.json`)
+
+Начиная с `2.31.2-mobile`, `BypassProxyServer.java` загружает список прокси-серверов (`proxy_servers`), порт (`proxy_port`), ALPN (`alpn`), список Google-хостов (`gate_hosts`) и текущую версию обхода (`version`) динамически:
+1. Сначала из `files/bypass_config.json` (если обновлялось на устройстве),
+2. Иначе из `assets/bypass_config.json` внутри APK.
+
+Это позволяет самоапдейтеру (`com.agy.updater.UpstreamChecker`) обновлять домены и хосты обхода напрямую из `confeden/Antigravity` без перекомпиляции Java-кода (если не изменился сам криптопротокол AGU2).

@@ -22,7 +22,7 @@ CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 RESOURCES_APK = os.path.join(BUILD_DIR, "resources.apk")
 OUTPUT_UNALIGNED = os.path.join(BUILD_DIR, "vanilla_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(BUILD_DIR, "vanilla_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.31.2-vanilla.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1-vanilla.apk")
 
 BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -127,9 +127,14 @@ subprocess.run(cmd_d8, check=True)
 print(f"  D8 generated vanilla classes.dex ({os.path.getsize(CLASSES_DEX)} bytes)")
 
 print("[3/5] Packaging base resources with aapt...")
+VANILLA_MANIFEST = os.path.join(BUILD_DIR, "AndroidManifest.xml")
+with open(MANIFEST_SRC, "r", encoding="utf-8") as f:
+    manifest_text = f.read().replace('-mobile"', '-vanilla"')
+with open(VANILLA_MANIFEST, "w", encoding="utf-8") as f:
+    f.write(manifest_text)
 if os.path.exists(RESOURCES_APK):
     os.remove(RESOURCES_APK)
-cmd_aapt = [AAPT, "package", "-f", "-M", MANIFEST_SRC, "-S", RES_DIR, "-I", ANDROID_JAR, "-F", RESOURCES_APK, "--auto-add-overlay"]
+cmd_aapt = [AAPT, "package", "-f", "-M", VANILLA_MANIFEST, "-S", RES_DIR, "-I", ANDROID_JAR, "-F", RESOURCES_APK, "--auto-add-overlay"]
 subprocess.run(cmd_aapt, check=True)
 print(f"  aapt generated resources.apk ({os.path.getsize(RESOURCES_APK)} bytes)")
 
@@ -171,7 +176,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
-    version_meta_bytes = json.dumps({"core_version": "2.31.2", "bypass_version": "none"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:

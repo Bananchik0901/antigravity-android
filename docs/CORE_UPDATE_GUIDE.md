@@ -245,3 +245,11 @@ I BypassProxy: AGU2 tunnel established via <relay-host> -> aicode.googleapis.com
 | `Permission denied` при запуске `language_server` | В манифесте `targetSdkVersion` установлен в 29 или выше | Оставить строго `targetSdkVersion="28"`. |
 | Белый экран при переходе в настройки | WebView рендерер выгружен системой Xiaomi HyperOS/MIUI | Убедиться, что в `AgyWebViewClient.java` метод `onRenderProcessGone` возвращает `true`. |
 | Уведомление смахивается | MIUI классифицирует канал как беззвучный | Использовать канал с `IMPORTANCE_DEFAULT` и флаги `FLAG_ONGOING_EVENT \| FLAG_NO_CLEAR`. |
+
+---
+
+## 9. Обновления патчера для `2.32.x` и Android-ядер без user/pid namespaces
+
+- `modules/patches/groups/failfast/crash_suppressor.py`: переведён на масочный поиск инструкций внутри `.text` (`CPU_PAT`, `ATOMIC_PAT`), чтобы корректно находить и патчить оба сайта на `2.11`, `2.31.2`, `2.32.0`, `2.32.1`+.
+- `modules/patches/groups/sandbox/disable_sandbox.py`: патчит `(*RunCommandHandler).isSandboxEnabled` (`mov w0, #0; ret`), устраняя ошибку `fork/exec .../libloader.so: invalid argument` при `BypassSandbox: false` на ядрах Android без `CONFIG_USER_NS`/`CONFIG_PID_NS`.
+- `tools/build_final_apk.py`: автоматически прогоняет все активные модули `modules/patches/pipeline.py` при сборке APK.
