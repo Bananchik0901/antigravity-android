@@ -61,7 +61,7 @@ public final class BypassProxyServer {
     private volatile int proxyPort = DEFAULT_PROXY_PORT;
     private volatile String alpnProtocol = DEFAULT_ALPN;
     private volatile String[] gateHosts = DEFAULT_GATE_HOSTS;
-    private volatile String bypassVersion = "2.31.2";
+    private volatile String bypassVersion = "2.32.2";
 
     private static volatile BypassProxyServer instance;
 

@@ -227,7 +227,11 @@ public final class UpstreamChecker {
         }
 
         Set<String> gateHosts = new LinkedHashSet<>();
-        Matcher mGate = Pattern.compile("\"([a-zA-Z0-9.-]+\\.googleapis\\.com)\"").matcher(combined);
+        int gateIdx = proxyRs.indexOf("fn is_gate_host");
+        String gateSection = gateIdx >= 0
+                ? proxyRs.substring(gateIdx, Math.min(proxyRs.length(), gateIdx + 800))
+                : "";
+        Matcher mGate = Pattern.compile("\"([a-zA-Z0-9.-]+\\.googleapis\\.com)\"").matcher(gateSection);
         while (mGate.find()) {
             gateHosts.add(mGate.group(1).toLowerCase());
         }
