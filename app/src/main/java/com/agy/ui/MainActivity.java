@@ -165,6 +165,7 @@ public class MainActivity extends Activity
         requestStoragePermissions();
 
         startCoreService();
+        android.widget.Toast.makeText(this, "made by @bananchik0901", android.widget.Toast.LENGTH_SHORT).show();
         com.agy.updater.UpdateUiHelper.checkAtStartup(this);
     }
 
