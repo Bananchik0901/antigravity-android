@@ -86,7 +86,7 @@ public final class UpdatePrefs {
         try {
             PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
             if (pi.versionName != null) {
-                return pi.versionName.replace("-mobile", "").replace("-vanilla", "").trim();
+                return pi.versionName.replace("-autoup", "").replace("-mobile", "").replace("-vanilla", "").trim();
             }
         } catch (Exception ignored) {}
         return "0.0.0";
@@ -132,19 +132,25 @@ public final class UpdatePrefs {
 
     public static String getInstalledAppVersionNumeric(Context ctx) {
         String v = getCurrentVersionName(ctx);
-        return v.replace("-mobile", "").replace("-vanilla", "").trim();
+        return v.replace("-autoup", "").replace("-mobile", "").replace("-vanilla", "").trim();
     }
 
-    public static String nextPatchVersion(String currentAppVerNumeric, String targetCoreVer, boolean coreChanged) {
+    public static String getInstalledDriveBaseVersion(Context ctx) {
+        String meta = readAssetText(ctx, "updater/version_meta.json");
+        if (meta != null) {
+            try {
+                String v = new JSONObject(meta).optString("drive_version", "");
+                if (!v.isEmpty()) return v;
+            } catch (Exception ignored) {}
+        }
+        return getInstalledAppVersionNumeric(ctx);
+    }
+
+    public static String nextAutoUpVersion(String baseDriveVer, String targetCoreVer, boolean coreChanged) {
         if (coreChanged) {
-            return targetCoreVer + ".1";
+            return targetCoreVer;
         }
-        String[] parts = currentAppVerNumeric.split("\\.");
-        if (parts.length >= 4) {
-            int p = parseIntSafe(parts[3]) + 1;
-            return parts[0] + "." + parts[1] + "." + parts[2] + "." + p;
-        }
-        return targetCoreVer + ".1";
+        return baseDriveVer;
     }
 
     public static File getBackupApkFile(Context ctx) {

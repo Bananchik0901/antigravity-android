@@ -172,8 +172,9 @@ public class SettingsActivity extends Activity {
         tvUpdateInfo.setTextSize(12);
         tvUpdateInfo.setTypeface(Typeface.MONOSPACE);
         tvUpdateInfo.setPadding(0, 0, 0, dp(8));
-        String updateStatus = "Ядро: " + com.agy.updater.UpdatePrefs.getInstalledCoreVersion(this)
-                + "\nAPK vCode: " + com.agy.updater.UpdatePrefs.getCurrentVersionCode(this);
+        String updateStatus = "Версия APK: " + com.agy.updater.UpdatePrefs.getCurrentVersionName(this)
+                + " (code " + com.agy.updater.UpdatePrefs.getCurrentVersionCode(this) + ")"
+                + "\nЯдро: " + com.agy.updater.UpdatePrefs.getInstalledCoreVersion(this);
         if (com.agy.updater.UpdatePrefs.hasBackup(this)) {
             updateStatus += "\nБэкап: " + com.agy.updater.UpdatePrefs.getBackupSummary(this);
         }

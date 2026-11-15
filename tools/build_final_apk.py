@@ -128,7 +128,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
         bypass_cfg_bytes = f.read()
         zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
     bypass_ver = json.loads(bypass_cfg_bytes.decode("utf-8")).get("version", "2.32.2")
-    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": bypass_ver}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": bypass_ver, "drive_version": "2.32.1.1"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:

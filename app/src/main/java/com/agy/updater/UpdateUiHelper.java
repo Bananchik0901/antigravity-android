@@ -90,7 +90,7 @@ public final class UpdateUiHelper {
             }
         }
         if (res.hasDriveUpdate) {
-            sb.append("• Приложение (Google Диск): ").append(res.installedCoreVersion)
+            sb.append("• Приложение (Google Диск): ").append(res.installedDriveVersion)
                     .append(" → ").append(res.latestDriveVersion)
                     .append(" (").append(res.latestDriveApkName).append(")\n");
         }

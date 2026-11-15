@@ -176,7 +176,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
-    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none", "drive_version": "2.32.1.1"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:

@@ -132,9 +132,9 @@ public final class ApkRepackagerAndSigner {
         }
 
         int nextVersionCode = UpdatePrefs.getCurrentVersionCode(ctx) + 1;
-        String suffix = UpdatePrefs.isVanillaBuild() ? "-vanilla" : "-mobile";
-        String curAppNumeric = UpdatePrefs.getInstalledAppVersionNumeric(ctx);
-        String nextVersionName = UpdatePrefs.nextPatchVersion(curAppNumeric, newCoreVer, updateCore) + suffix;
+        String suffix = UpdatePrefs.isVanillaBuild() ? "-vanilla-autoup" : "-mobile-autoup";
+        String baseDriveVer = UpdatePrefs.getInstalledDriveBaseVersion(ctx);
+        String nextVersionName = UpdatePrefs.nextAutoUpVersion(baseDriveVer, newCoreVer, updateCore) + suffix;
 
         if (cb != null) cb.onProgress("Пересборка APK (v" + nextVersionName + ", code " + nextVersionCode + ")...");
         File unsignedApk = new File(workDir, "rebuilt_unsigned.apk");
@@ -154,6 +154,7 @@ public final class ApkRepackagerAndSigner {
             JSONObject meta = new JSONObject();
             meta.put("core_version", newCoreVer);
             meta.put("bypass_version", newBypassVer);
+            meta.put("drive_version", baseDriveVer);
             byte[] versionMetaBytes = meta.toString(2).getBytes(StandardCharsets.UTF_8);
 
             repackageZip(zin, unsignedApk, patchedAxml, manifestJsonBytes, versionMetaBytes,
