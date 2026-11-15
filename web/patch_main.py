@@ -100,7 +100,7 @@ def _patch_app_and_browser_settings(content):
         content = app_gate_re.sub("App:{feature:{visible:!0}}", content, count=1)
         print("[web-patch] Unhid App settings screen")
 
-    # 2. Version card fallback to window.__APP_CONFIG__?.appVersion
+    # 2. Version card prefers window.__APP_CONFIG__?.appVersion
     if "/*ag-app-ver*/" not in content:
         ver_re = re.compile(
             r'(function\s+[A-Za-z0-9_$]+\(\)\{var\s+\{currentVersion:([A-Za-z0-9_$]+)\}=[A-Za-z0-9_$]+\(\),\{electronNativeFeature:([A-Za-z0-9_$]+)\}=\(0,[A-Za-z0-9_$]+\.useContext\)\([A-Za-z0-9_$]+\);return\(\2=\2\|\|\3\?\.appVersion\)\?)'
@@ -110,9 +110,20 @@ def _patch_app_and_browser_settings(content):
             raise RuntimeError("App version card anchor not found")
         cv, enf = m.group(2), m.group(3)
         old_frag = f"return({cv}={cv}||{enf}?.appVersion)?"
-        new_frag = f"return({cv}={cv}||{enf}?.appVersion||window.__APP_CONFIG__?.appVersion/*ag-app-ver*/)?"
+        new_frag = f"return({cv}=window.__APP_CONFIG__?.appVersion||{cv}||{enf}?.appVersion/*ag-app-ver*/)?"
         content = content.replace(old_frag, new_frag, 1)
-        print("[web-patch] Patched App version fallback")
+        print("[web-patch] Patched App version priority")
+    else:
+        old_ver_re = re.compile(
+            r'return\(([A-Za-z0-9_$]+)=\1\|\|([A-Za-z0-9_$]+)\?\.appVersion\|\|window\.__APP_CONFIG__\?\.appVersion/\*ag-app-ver\*/\)\?'
+        )
+        if old_ver_re.search(content):
+            content = old_ver_re.sub(
+                r'return(\1=window.__APP_CONFIG__?.appVersion||\1||\2?.appVersion/*ag-app-ver*/)?',
+                content,
+                count=1,
+            )
+            print("[web-patch] Upgraded App version priority")
 
     # 3. Promote Browser to top-level Settings screen list
     if '{screen:"Browser"}' not in content:

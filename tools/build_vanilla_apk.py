@@ -22,7 +22,7 @@ CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 RESOURCES_APK = os.path.join(BUILD_DIR, "resources.apk")
 OUTPUT_UNALIGNED = os.path.join(BUILD_DIR, "vanilla_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(BUILD_DIR, "vanilla_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.1-vanilla.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.2-vanilla.apk")
 
 BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -176,7 +176,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
-    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none", "drive_version": "2.32.1.1"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none", "drive_version": "2.32.1.2"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:
