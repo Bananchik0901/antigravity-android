@@ -16,7 +16,7 @@ CLASSES_JAR = os.path.join(APP_DIR, r"build\classes.jar")
 CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1-mobile.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.1-mobile.apk")
 
 BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")

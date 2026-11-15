@@ -130,6 +130,23 @@ public final class UpdatePrefs {
         }
     }
 
+    public static String getInstalledAppVersionNumeric(Context ctx) {
+        String v = getCurrentVersionName(ctx);
+        return v.replace("-mobile", "").replace("-vanilla", "").trim();
+    }
+
+    public static String nextPatchVersion(String currentAppVerNumeric, String targetCoreVer, boolean coreChanged) {
+        if (coreChanged) {
+            return targetCoreVer + ".1";
+        }
+        String[] parts = currentAppVerNumeric.split("\\.");
+        if (parts.length >= 4) {
+            int p = parseIntSafe(parts[3]) + 1;
+            return parts[0] + "." + parts[1] + "." + parts[2] + "." + p;
+        }
+        return targetCoreVer + ".1";
+    }
+
     public static File getBackupApkFile(Context ctx) {
         File dir = new File(ctx.getFilesDir(), "updater_backups");
         if (!dir.exists()) dir.mkdirs();

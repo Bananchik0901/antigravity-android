@@ -133,7 +133,8 @@ public final class ApkRepackagerAndSigner {
 
         int nextVersionCode = UpdatePrefs.getCurrentVersionCode(ctx) + 1;
         String suffix = UpdatePrefs.isVanillaBuild() ? "-vanilla" : "-mobile";
-        String nextVersionName = newCoreVer + suffix;
+        String curAppNumeric = UpdatePrefs.getInstalledAppVersionNumeric(ctx);
+        String nextVersionName = UpdatePrefs.nextPatchVersion(curAppNumeric, newCoreVer, updateCore) + suffix;
 
         if (cb != null) cb.onProgress("Пересборка APK (v" + nextVersionName + ", code " + nextVersionCode + ")...");
         File unsignedApk = new File(workDir, "rebuilt_unsigned.apk");

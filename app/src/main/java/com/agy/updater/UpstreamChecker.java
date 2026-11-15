@@ -28,6 +28,7 @@ public final class UpstreamChecker {
     public static final String GDRIVE_FOLDER_ID = "1G5pZieHp--dHqtq2dFqInBuZDCsRxQoz";
 
     public static final class CheckResult {
+        public String installedAppVersion;
         public String installedCoreVersion;
         public String latestCoreVersion;
         public String latestCoreExecutionId;
@@ -69,6 +70,7 @@ public final class UpstreamChecker {
 
     public static CheckResult check(Context ctx) {
         CheckResult res = new CheckResult();
+        res.installedAppVersion = UpdatePrefs.getInstalledAppVersionNumeric(ctx);
         res.installedCoreVersion = UpdatePrefs.getInstalledCoreVersion(ctx);
         res.installedBypassVersion = UpdatePrefs.getInstalledBypassVersion(ctx);
 
@@ -174,7 +176,7 @@ public final class UpstreamChecker {
         }
 
         if (bestFolderId != null && (bestVer == null || UpdatePrefs.compareVersions(bestFolderVer, bestVer) > 0)) {
-            if (UpdatePrefs.compareVersions(bestFolderVer, res.installedCoreVersion) > 0) {
+            if (UpdatePrefs.compareVersions(bestFolderVer, res.installedCoreVersion) >= 0) {
                 String subHtml = httpGetString("https://drive.google.com/embeddedfolderview?id=" + bestFolderId + "#list");
                 Matcher mSub = Pattern.compile(
                         "/file/d/([a-zA-Z0-9_-]+)/[^\"']*[\"'][^>]*>.*?class=\"flip-entry-title\"[^>]*>([^<]+)<",
@@ -183,7 +185,11 @@ public final class UpstreamChecker {
                     String id = mSub.group(1);
                     String name = mSub.group(2).trim();
                     if (name.endsWith(flavorSuffix)) {
-                        bestVer = bestFolderVer;
+                        if (name.startsWith("Antigravity-")) {
+                            bestVer = name.substring("Antigravity-".length(), name.length() - flavorSuffix.length());
+                        } else {
+                            bestVer = bestFolderVer;
+                        }
                         bestFileId = id;
                         bestFileName = name;
                         break;
@@ -193,7 +199,7 @@ public final class UpstreamChecker {
         }
 
         if (bestVer != null && bestFileId != null
-                && UpdatePrefs.compareVersions(bestVer, res.installedCoreVersion) > 0) {
+                && UpdatePrefs.compareVersions(bestVer, res.installedAppVersion) > 0) {
             res.latestDriveVersion = bestVer;
             res.latestDriveApkName = bestFileName;
             res.latestDriveDownloadUrl = "https://drive.usercontent.google.com/download?id=" + bestFileId + "&confirm=t";
