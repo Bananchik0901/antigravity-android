@@ -19,7 +19,11 @@
 
   <br/>
 
-  <img alt="Интерфейс Antigravity" src="docs/assets/hero_mobile.jpg" width="340" style="border-radius: 16px; border: 1px solid rgba(128,128,128,0.2);" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero_dark.jpg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero_light.jpg">
+    <img alt="Интерфейс Antigravity" src="docs/assets/hero_dark.jpg" width="340" style="border-radius: 16px; border: 1px solid rgba(128,128,128,0.2);" />
+  </picture>
 
 </div>
 
