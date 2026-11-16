@@ -30,7 +30,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 /**
  * Local HTTP CONNECT proxy listening on 127.0.0.1:45162.
- * Intercepts Google gate endpoints and tunnels them to <relay-host>
+ * Intercepts Google gate endpoints and tunnels them through the configured AGU2 relay
  * using the AGU2 authenticated protocol with the device hardware ID.
  */
 public final class BypassProxyServer {
@@ -41,14 +41,10 @@ public final class BypassProxyServer {
     private static final String PREF_NAME = "antigravity_proxy_prefs";
     private static final String KEY_ENABLED = "bypass_proxy_enabled";
 
-    // Baked AES/HMAC secret for agk1 token unwrapping
-    private static final String BAKED_T_HEX = "";
+    // Build-injected AES/HMAC secret for agk1 token unwrapping (empty in public clones)
+    private static final String BAKED_T_HEX = com.agy.BuildConfig.AGU2_WRAP_KEY;
 
-    private static final String[] DEFAULT_PROXY_SERVERS = new String[] {
-            "<relay-host>",
-            "<relay-host-2>",
-            "<relay-host-3>"
-    };
+    private static final String[] DEFAULT_PROXY_SERVERS = com.agy.BuildConfig.AGU2_PROXY_SERVERS;
     private static final int DEFAULT_PROXY_PORT = 443;
     private static final String DEFAULT_ALPN = "agu/2";
     private static final String[] DEFAULT_GATE_HOSTS = new String[] {
@@ -345,6 +341,9 @@ public final class BypassProxyServer {
         byte[] ct = Arrays.copyOfRange(raw, 16, raw.length - 16);
         byte[] tag = Arrays.copyOfRange(raw, raw.length - 16, raw.length);
 
+        if (BAKED_T_HEX == null || BAKED_T_HEX.length() != 64) {
+            throw new IllegalStateException("Ключ развёртывания AGU2 не встроен в эту публичную сборку (см. tools/.bypass_secrets.json)");
+        }
         byte[] t = hexToBytes(BAKED_T_HEX);
         byte[] macKey = hmacSha256Bytes(t, "mac".getBytes(StandardCharsets.US_ASCII));
 
@@ -409,6 +408,15 @@ public final class BypassProxyServer {
     private void parseKeyPlaintext(String s) {
         String[] lines = s.split("\n");
         if (lines.length >= 7 && "AGU2".equals(lines[0].trim())) {
+            String hostLine = lines[1].trim();
+            if ((this.proxyServers == null || this.proxyServers.length == 0)
+                    && !hostLine.isEmpty() && !"proxy.example".equals(hostLine)) {
+                this.proxyServers = new String[]{hostLine};
+                try {
+                    int p = Integer.parseInt(lines[2].trim());
+                    if (p > 0 && p <= 65535) this.proxyPort = p;
+                } catch (NumberFormatException ignored) {}
+            }
             this.tg = Long.parseLong(lines[3].trim());
             this.code = lines[4].trim();
             this.issued = Long.parseLong(lines[5].trim());

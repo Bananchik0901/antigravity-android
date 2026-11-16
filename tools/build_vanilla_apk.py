@@ -6,9 +6,9 @@ import json
 import subprocess
 import sys
 
-WORK_DIR = r"<WORK_DIR>"
-BASE_APK = os.path.join(WORK_DIR, "phone_base.apk")
-APP_DIR = os.path.join(WORK_DIR, "antigravity-android")
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK_DIR = os.environ.get("AGY_WORK_DIR", os.path.dirname(APP_DIR))
+BASE_APK = os.environ.get("AGY_BASE_APK", os.path.join(WORK_DIR, "phone_base.apk"))
 SRC_DIR = os.path.join(APP_DIR, r"app\src\main\java")
 GEN_DIR = os.path.join(APP_DIR, r"build\gen")
 RES_DIR = os.path.join(APP_DIR, r"app\src\main\res")
@@ -24,14 +24,14 @@ OUTPUT_UNALIGNED = os.path.join(BUILD_DIR, "vanilla_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(BUILD_DIR, "vanilla_aligned.apk")
 FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.2-vanilla.apk")
 
-BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
+BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
 ZIPALIGN = os.path.join(BUILD_TOOLS, "zipalign.exe")
 APKSIGNER = os.path.join(BUILD_TOOLS, "apksigner.bat")
 KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
 R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
 ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
-JAVA_HOME = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK"
+JAVA_HOME = os.environ.get("JAVA_HOME", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK")
 JAVAC_EXE = os.path.join(JAVA_HOME, "bin", "javac.exe")
 JAVA_EXE = os.path.join(JAVA_HOME, "bin", "java.exe")
 
@@ -89,8 +89,38 @@ with open(fn_file, "w", encoding="utf-8") as f:
     f.write(fn_code)
 
 print("[1/5] Compiling Vanilla Java classes with javac...")
+VANILLA_GEN_DIR = os.path.join(BUILD_DIR, "gen")
+if os.path.exists(VANILLA_GEN_DIR):
+    shutil.rmtree(VANILLA_GEN_DIR)
+if os.path.isdir(GEN_DIR):
+    shutil.copytree(GEN_DIR, VANILLA_GEN_DIR)
+vanilla_cfg_path = os.path.join(VANILLA_GEN_DIR, "com", "agy", "BuildConfig.java")
+os.makedirs(os.path.dirname(vanilla_cfg_path), exist_ok=True)
+with open(vanilla_cfg_path, "w", encoding="utf-8") as cf:
+    cf.write('''package com.agy;
+
+public final class BuildConfig {
+    private BuildConfig() {}
+
+    public static final String APPLICATION_ID = "com.antigravity.mobile";
+    public static final int PORT = 45157;
+    public static final int PORT_DEV = 45157;
+    public static final int GATEWAY_PORT = 45160;
+    public static final String CORE_VERSION = "2.32.1";
+    public static final String APP_VERSION_NAME = "2.32.1.2-vanilla";
+    public static final int APP_VERSION_CODE = 23;
+    public static final String OAUTH_SCHEME = "antigravity";
+    public static final String APP_NAME = "Antigravity";
+    public static final int MIN_API = 24;
+    public static final int TARGET_SDK = 28;
+    public static final boolean DEBUG = false;
+    public static final String AGU2_WRAP_KEY = "";
+    public static final String[] AGU2_PROXY_SERVERS = new String[0];
+}
+''')
+
 java_files = []
-for d in [TEMP_SRC, GEN_DIR]:
+for d in [TEMP_SRC, VANILLA_GEN_DIR]:
     for root, _, files in os.walk(d):
         for f in files:
             if f.endswith(".java"):

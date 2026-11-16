@@ -30,6 +30,24 @@ def java_string(value):
     return '"' + escaped + '"'
 
 
+def load_bypass_secrets(project_root):
+    t_hex = os.environ.get("AGY_AGU2_T_HEX", "").strip()
+    servers = [s.strip() for s in os.environ.get("AGY_PROXY_SERVERS", "").split(",") if s.strip()]
+    secrets_path = os.path.join(project_root, "tools", ".bypass_secrets.json")
+    if os.path.isfile(secrets_path):
+        try:
+            import json
+            with open(secrets_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not t_hex:
+                t_hex = str(data.get("t_hex", "")).strip()
+            if not servers and isinstance(data.get("proxy_servers"), list):
+                servers = [str(s).strip() for s in data["proxy_servers"] if str(s).strip()]
+        except Exception as e:
+            print(f"[warn] failed reading {secrets_path}: {e}", file=sys.stderr)
+    return t_hex, servers
+
+
 def main():
     build_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(PROJECT_ROOT, "build")
     env_file = os.path.join(PROJECT_ROOT, "config", "app.env")
@@ -50,6 +68,8 @@ def main():
     min_api = env.get("MIN_API", "24")
     target_sdk = env.get("TARGET_SDK", "28")
     is_debug = "true" if is_dev else "false"
+    agu2_t_hex, agu2_servers = load_bypass_secrets(PROJECT_ROOT)
+    agu2_servers_literal = "new String[] {" + ", ".join(java_string(s) for s in agu2_servers) + "}" if agu2_servers else "new String[0]"
 
     pkg_dir = os.path.join(build_dir, "gen", *pkg_base.split("."))
     res_values_dir = os.path.join(build_dir, "res", "values")
@@ -74,6 +94,8 @@ def main():
         f.write("    public static final int MIN_API = %s;\n" % min_api)
         f.write("    public static final int TARGET_SDK = %s;\n" % target_sdk)
         f.write("    public static final boolean DEBUG = %s;\n" % is_debug)
+        f.write("    public static final String AGU2_WRAP_KEY = %s;\n" % java_string(agu2_t_hex))
+        f.write("    public static final String[] AGU2_PROXY_SERVERS = %s;\n" % agu2_servers_literal)
         f.write("}\n")
 
     # 2. gen.xml

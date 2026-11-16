@@ -43,7 +43,7 @@
   - `src/group_key.rs` — спецификация формата ключа `agk1...`, unwrap-алгоритм, вычисление HMAC для `Proxy-Authorization`.
   - `src/proxy.rs` — функция `is_gate_host` (список хостов Google, требующих обхода).
   - `src/hwid.rs` — генерация идентификатора оборудования (HWID) и кодирование Crockford Base32.
-  - `src/resolvers.rs` — список резервных адресов и серверов `<relay-hosts>`.
+  - `src/resolvers.rs` — список gate-хостов и конфигурация маршрутизации (список релейных серверов в upstream не коммитится и собирается локально из `.exits` / `.group_key`).
 
 ---
 
@@ -69,16 +69,17 @@ private boolean isGoogleGateHost(String host) {
 }
 ```
 
-### Шаг 2: Проверка списка серверов прокси (`src/group.rs` / `src/resolvers.rs`)
-В `BypassProxyServer.java` массив серверов:
-```java
-private static final String[] PROXY_SERVERS = new String[] {
-        "<relay-host>",
-        "<relay-host-2>",
-        "<relay-host-3>"
-};
+### Шаг 2: Конфигурация списка серверов прокси (`tools/.bypass_secrets.json` / `bypass_config.json`)
+Как и в upstream (`confeden/Antigravity`), список релейных узлов и ключ развёртывания не коммитятся в открытый репозиторий. Они задаются в локальном gitignored-файле `tools/.bypass_secrets.json` (или через переменные окружения `AGY_AGU2_T_HEX` и `AGY_PROXY_SERVERS`), откуда попадают в `BuildConfig` и `assets/bypass_config.json` при сборке:
+```json
+{
+  "t_hex": "<64-hex-unwrap-secret>",
+  "proxy_servers": [
+    "<relay-1>",
+    "<relay-2>"
+  ]
+}
 ```
-Если upstream добавил новые узлы или сменил домен — обновите этот массив.
 
 ### Шаг 3: Проверка ALPN и протокола рукопожатия (`src/group.rs`)
 В `open_agu2` проверьте:
@@ -101,8 +102,7 @@ configureAlpn(sslSocket, "agu/2");
    - `nonce`: первые 16 байт.
    - `ciphertext`: от 16 байта до `len - 16`.
    - `tag`: последние 16 байт.
-3. Используется запечённый 32-байтный секрет $T$:
-   `BAKED_T_HEX = ""`
+3. Используется запечённый на этапе сборки 32-байтный секрет $T$ (`com.agy.BuildConfig.AGU2_WRAP_KEY`, задаётся через локальный `tools/.bypass_secrets.json` или `AGY_AGU2_T_HEX`).
 4. Вычисляются ключи:
    - `mac_key = HMAC-SHA256(T, "mac")`
    - `enc_key = HMAC-SHA256(T, "enc")`
@@ -114,8 +114,8 @@ configureAlpn(sslSocket, "agu/2");
    - Строка 0: `AGU2`
    - Строка 1: хост прокси (например, `<relay-host>`)
    - Строка 2: порт (`443`)
-   - Строка 3: Telegram ID пользователя (например, `123456789`)
-   - Строка 4: код устройства (`code`, например `<device-code>` или `<device-code-2>`)
+   - Строка 3: Telegram ID пользователя (например, `<tg-user-id>`)
+   - Строка 4: код устройства (`code`, например `<device-code>`)
    - Строка 5: timestamp выпуска ключа (`issued`)
    - Строка 6: `user_key` (32 байта в hex, используется для HMAC-подписи запросов)
 
@@ -153,27 +153,11 @@ configureAlpn(sslSocket, "agu/2");
 
 ---
 
-## 5. Как извлечь секрет $T$, если он изменится в upstream
+## 5. Пересборка с локальным секретом $T$
 
-В upstream репозитории `confeden/Antigravity` секрет $T$ генерируется в `build.rs` и шифруется через AES-256-GCM в `src/group_gen.rs`. Если автор обновил лицензионный ключ или секрет $T$:
-
-### Скрипт расшифровки $T$ из бинарника (`decrypt_t.py`):
-```python
-import hashlib, ctypes
-from ctypes import wintypes
-
-# Лицензионный ключ из репозитория (например, UPULACBFNOXR94F87F42F6E4)
-license_key = "UPULACBFNOXR94F87F42F6E4"
-
-# В скомпилированном Antigravity.exe найдите константы GROUP_KEY, GROUP_NONCE, GROUP_CT
-# Либо запустите этот скрипт с извлеченными байтами:
-key_bytes = bytes.fromhex('<32-byte-aes-key>')
-nonce_bytes = bytes.fromhex('<12-byte-nonce>')
-ct_tag_bytes = bytes.fromhex('<encrypted-ct-tag>')
-
-# Расшифровка AES-256-GCM дает строку t_hex
-# Полученный 64-символьный hex вставляется в BAKED_T_HEX в BypassProxyServer.java
-```
+В upstream репозитории `confeden/Antigravity` секрет $T$ хранится вне git (`.group_key`) и запекается в бинарник на этапе сборки через AES-256-GCM. В данном Android-порте используется аналогичная схема:
+- В открытый репозиторий коммитится только код распаковки и заглушка `AGU2_WRAP_KEY = ""`.
+- Локально при сборке положите 64-символьный `t_hex` и список `proxy_servers` в gitignored-файл `tools/.bypass_secrets.json` (или задайте переменные окружения `AGY_AGU2_T_HEX` и `AGY_PROXY_SERVERS`), после чего `tools/build_final_apk.py` и `modules/builder/01_gen_config.py` подставят их в `BuildConfig` и `assets/bypass_config.json`.
 
 ---
 

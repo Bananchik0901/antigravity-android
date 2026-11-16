@@ -10,14 +10,11 @@
 
   # Antigravity для Android
 
-> [!WARNING]
-> **Проект временно приостановлен на несколько месяцев из-за занятости разработчика.**
+**Автономная среда разработки на базе ИИ, работающая нативно на Android и ARM64 (Ядро `2.32.1`).**
 
-**Автономная среда разработки на базе ИИ, работающая нативно на Android и ARM64.**
-
-  [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
+  [![Android](https://img.shields.io/badge/Android-7.0--16-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
-  [![Release](https://img.shields.io/badge/Версия-2.4.1-blueviolet?style=flat-square)](https://github.com/werdio325-png/antigravity-android/releases)
+  [![Release](https://img.shields.io/badge/Версия-2.32.1.2-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
   [![License](https://img.shields.io/badge/Лицензия-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
@@ -40,13 +37,15 @@
 
 ---
 
-### Главное в v2.4
+### Главное в v2.32.1.2
 
-* **Модульная архитектура:** Разделение ядра на 6 изолированных подсистем (`modules/*`) с отдельными тестами.
-* **Нативный сплэш:** Отрисовка анимации точек на Canvas экономит ~40 МБ RAM и ускоряет запуск.
-* **Desktop Mode:** Мгновенный переключатель в настройках *Appearance* для планшетов, клавиатур и Samsung DeX.
-* **Поддержка ARMv8.0-A:** Встроенная эмуляция атомиков и SIMD (`liblse_compat.so`) для старых чипсетов.
-* **Фоновый микро-демон:** Легковесный `agy-daemon` (<10 МБ RAM) с планировщиком cron, слежением за файлами и очередью AI-задач.
+* **Ядро `2.32.1` и поддержка Android 15/16:** Обновлённый рантайм с патчем `disable_sandbox`, изоляцией `LD_LIBRARY_PATH` для Bionic-утилит и `targetSdkVersion 28`.
+* **Две редакции APK:**
+  * `Antigravity-2.32.1.2-mobile.apk` — редакция с обходом (`@nova_txt` AGU2 локальный CONNECT-прокси `127.0.0.1:45162`, проверка лицензионного ключа, патчи `cli_gate` / `enterprise_auth` / `ineligible`).
+  * `Antigravity-2.32.1.2-vanilla.apk` — чистый порт (100% оригинальный `liblanguage_server.so`, прямое подключение без прокси).
+* **Встроенный автоапдейтер с пересборкой на устройстве:** Проверяет обновления Ядра, Обхода (`confeden/Antigravity`) и APK на Google Диске, пересобирает и переподписывает APK прямо на телефоне (с пометкой `-autoup`), поддерживает откат версии.
+* **Доработки Web UI:** Вкладки *App* и *Browser* в настройках, мобильные *Projects* и *Not in Project: Conversations*, удержание WebView-потоков в фоне и автоматический OAuth для плагинов.
+* **Модульная архитектура и ARMv8.0-A:** Разделение на 6 подсистем (`modules/*`), эмуляция атомиков `liblse_compat.so` + `sigill_handler`, микро-демон `agy-daemon`.
 
 ---
 
@@ -62,10 +61,10 @@
 
 ### Быстрый старт
 
-1. **Скачайте APK** со страницы [Releases](https://github.com/werdio325-png/antigravity-android/releases):
-   * `antigravity.apk` — стандартная версия (оригинальные проверки Google).
-   * `antigravity-region-bypass.apk` — версия с обходом проверки учетных записей.
-2. **Предоставьте доступ к памяти** (`Все файлы`). *(Опционально: подключите Shizuku для доступа к ADB)*.
+1. **Скачайте APK** со страницы [Releases](https://github.com/Bananchik09/antigravity-android/releases):
+   * `Antigravity-2.32.1.2-mobile.apk` — версия с обходом (AGU2-прокси + патчи ограничений).
+   * `Antigravity-2.32.1.2-vanilla.apk` — чистая версия (оригинальное ядро без прокси).
+2. **Предоставьте доступ к памяти** (`Все файлы`). *(Опционально: подключите Shizuku или Root для привилегированной оболочки)*.
 3. **Установите рабочее окружение** в терминале или через агента:
    ```bash
    pkg update && pkg install git python nodejs
@@ -76,15 +75,22 @@
 ### Сборка и тестирование
 
 ```bash
-# Сборка стандартного релизного APK (dist/antigravity.apk):
-bash build.sh
+# Сборка Bypass APK (требуется базовый рантайм и опционально tools/.bypass_secrets.json):
+python tools/build_final_apk.py
 
-# Сборка релизного APK с обходом проверок (dist/antigravity-region-bypass.apk):
-bash build.sh --region-bypass
+# Сборка чистого Vanilla APK:
+python tools/build_vanilla_apk.py
+
+# Или через модульные shell-скрипты:
+bash build.sh                 # Стандартный релиз
+bash build.sh --region-bypass # Релиз с обходом проверок
 
 # Запуск полного набора тестов:
 bash test_all_modules.sh
 ```
+
+> [!NOTE]
+> Как и в upstream (`confeden/Antigravity`), список релейных узлов и секрет развёртывания ключа `agk1.` не коммитятся в открытый репозиторий. При самостоятельной сборке версии с обходом укажите их в локальном `tools/.bypass_secrets.json` (в `.gitignore`) или через `AGY_AGU2_T_HEX` и `AGY_PROXY_SERVERS`.
 
 ---
 

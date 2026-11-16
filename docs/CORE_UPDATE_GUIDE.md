@@ -12,7 +12,7 @@
 2. **Glibc-загрузчик**: `assets/runtime/bin/libloader.so` (динамический компоновщик `ld-linux-aarch64.so.1`).
 3. **Хук совместимости**: `assets/runtime/lib/liblse_compat.so` (перехватывает вызовы ядра, специфичные для Linux, транслируя их в Android Bionic).
 4. **Контрольный манифест**: `assets/runtime/manifest.json` — содержит контрольные суммы SHA-256 всех файлов рантайма. При старте `RuntimeManager.java` валидирует хэши; если хэш не совпадает, бинарник перезаписывается или падает с ошибкой.
-5. **Прокси обхода блокировок**: `com.agy.proxy.BypassProxyServer.java` слушает на `127.0.0.1:45162` и туннелирует запросы к `daily-cloudcode-pa.googleapis.com` через европейский сервер `<relay-host>:443` по протоколу AGU2.
+5. **Прокси обхода блокировок**: `com.agy.proxy.BypassProxyServer.java` слушает на `127.0.0.1:45162` и туннелирует запросы к `daily-cloudcode-pa.googleapis.com` через настроенный релейный сервер обхода по протоколу AGU2.
 6. **Окружение ядра**: `com.agy.core.CoreEnvironment.java` передает переменные окружения, включая `AG_LS_PROXY=http://127.0.0.1:45162`.
 
 ---
@@ -128,9 +128,9 @@ with open("manifest.json", "w", encoding="utf-8") as f:
 ```python
 import os, zipfile, hashlib, json, subprocess
 
-WORK_DIR = r"<WORK_DIR>"
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK_DIR = os.environ.get("AGY_WORK_DIR", os.path.dirname(APP_DIR))
 BASE_APK = os.path.join(WORK_DIR, "phone_base.apk")
-APP_DIR = os.path.join(WORK_DIR, "antigravity-android")
 RESOURCES_APK = os.path.join(APP_DIR, r"build\base_resources.apk")
 OBJ_DIR = os.path.join(APP_DIR, r"build\obj")
 DEX_DIR = os.path.join(APP_DIR, r"build\dex")
@@ -140,14 +140,14 @@ OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
 FINAL_APK = os.path.join(WORK_DIR, "Antigravity-2.32.0-mobile.apk")
 
-BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
+BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", "<path-to-android-sdk>/build-tools/32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
 ZIPALIGN = os.path.join(BUILD_TOOLS, "zipalign.exe")
 APKSIGNER = os.path.join(BUILD_TOOLS, "apksigner.bat")
 KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
 R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
 ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
-JAVA_HOME = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK"
+JAVA_HOME = os.environ.get("JAVA_HOME", "<path-to-jdk>")
 JAVA_EXE = os.path.join(JAVA_HOME, "bin", "java.exe")
 
 # 1. Dexing

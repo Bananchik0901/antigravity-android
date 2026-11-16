@@ -10,15 +10,11 @@
 
   # Antigravity for Android
 
-> [!WARNING]
-> **Проект временно приостановлен на несколько месяцев из-за занятости разработчика.**  
-> *(Project is temporarily on hold for several months due to developer workload).*
+**Autonomous AI development environment running natively on Android & ARM64 (Core `2.32.1`).**
 
-**Autonomous AI development environment running natively on Android & ARM64.**
-
-  [![Android](https://img.shields.io/badge/Android-7.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
+  [![Android](https://img.shields.io/badge/Android-7.0--16-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
-  [![Release](https://img.shields.io/badge/Version-2.4.1-blueviolet?style=flat-square)](https://github.com/werdio325-png/antigravity-android/releases)
+  [![Release](https://img.shields.io/badge/Version-2.32.1.2-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
   [![License](https://img.shields.io/badge/License-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
@@ -41,13 +37,15 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 
 ---
 
-### Highlights in v2.4
+### Highlights in v2.32.1.2
 
-* **Modular Core:** Clean separation into 6 standalone subsystems (`modules/*`) with independent test suites.
-* **Native Splash:** Canvas-based dot animation saving ~40 MB RAM with instant startup.
-* **Desktop Mode:** Instant toggle in Appearance settings for tablets, external keyboards, and Samsung DeX.
-* **Universal ARMv8.0-A Support:** Built-in transparent atomic & SIMD emulation (`liblse_compat.so`) for older CPUs.
-* **Background Micro-Daemon:** Ultra-lightweight `agy-daemon` (<10 MB RAM) with cron scheduler, file watcher, and AI task queue.
+* **Antigravity Core `2.32.1` + Android 15/16 Ready:** Updated upstream runtime with `disable_sandbox` & Bionic linker fixes (`LD_LIBRARY_PATH` isolation) and `targetSdkVersion 28`.
+* **Two APK Editions:**
+  * `Antigravity-2.32.1.2-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
+  * `Antigravity-2.32.1.2-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
+* **On-Device Self-Rebuilding Auto-Updater:** Checks Core, Bypass (`confeden/Antigravity`), and full APK releases (`Google Drive`), repacks & re-signs the APK on-device (`-autoup` suffix), and supports rollback.
+* **Web UI Enhancements:** Exposed `App` and `Browser` settings, mobile `Projects` and `Not in Project: Conversations`, background WebView stream keep-alive, and automatic loopback plugin OAuth.
+* **Modular Core & ARMv8.0-A Support:** Clean separation into 6 subsystems (`modules/*`), `liblse_compat.so` + `sigill_handler`, and `agy-daemon`.
 
 ---
 
@@ -63,10 +61,10 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 
 ### Quick Start
 
-1. **Download APK** from [Releases](https://github.com/werdio325-png/antigravity-android/releases):
-   * `antigravity.apk` — standard release (original Google account checks).
-   * `antigravity-region-bypass.apk` — release with account eligibility check bypass.
-2. **Grant Storage Permission** (`All Files Access`). *(Optional: enable Shizuku for ADB access)*.
+1. **Download APK** from [Releases](https://github.com/Bananchik09/antigravity-android/releases):
+   * `Antigravity-2.32.1.2-mobile.apk` — Bypass edition (built-in AGU2 proxy + account gate patches).
+   * `Antigravity-2.32.1.2-vanilla.apk` — Clean Vanilla edition (stock core binary, direct connection).
+2. **Grant Storage Permission** (`All Files Access`). *(Optional: enable Shizuku or Root for elevated shell access)*.
 3. **Install Runtimes** via terminal or agent:
    ```bash
    pkg update && pkg install git python nodejs
@@ -77,15 +75,22 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 ### Building & Testing
 
 ```bash
-# Build standard release APK (dist/antigravity.apk):
-bash build.sh
+# Build Bypass APK (requires phone_base.apk runtime assets + optional tools/.bypass_secrets.json):
+python tools/build_final_apk.py
 
-# Build release APK with region bypass (dist/antigravity-region-bypass.apk):
-bash build.sh --region-bypass
+# Build Clean Vanilla APK:
+python tools/build_vanilla_apk.py
+
+# Or build via modular shell scripts:
+bash build.sh                 # Standard release edition
+bash build.sh --region-bypass # Region bypass edition
 
 # Run all test suites:
 bash test_all_modules.sh
 ```
+
+> [!NOTE]
+> Relay hostnames and the `agk1.` unwrap key are intentionally kept out of source control (matching upstream `confeden/Antigravity`). Place them in the gitignored `tools/.bypass_secrets.json` (or `AGY_AGU2_T_HEX` / `AGY_PROXY_SERVERS` env vars) if building your own Bypass APK.
 
 ---
 

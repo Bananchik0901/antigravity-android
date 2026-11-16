@@ -114,7 +114,7 @@ public final class UpstreamChecker {
                     res.hasBypassUpdate = UpdatePrefs.compareVersions(
                             res.latestBypassVersion, res.installedBypassVersion) > 0;
                     if (res.hasBypassUpdate) {
-                        buildBypassConfigFromUpstream(res);
+                        buildBypassConfigFromUpstream(res, ctx);
                     }
                 }
             } catch (Exception e) {
@@ -207,7 +207,7 @@ public final class UpstreamChecker {
         }
     }
 
-    private static void buildBypassConfigFromUpstream(CheckResult res) throws Exception {
+    private static void buildBypassConfigFromUpstream(CheckResult res, Context ctx) throws Exception {
         String proxyRs = httpGetString(BYPASS_RAW_BASE + "proxy.rs");
         String groupRs = "";
         String resolversRs = "";
@@ -221,16 +221,8 @@ public final class UpstreamChecker {
             res.bypassRequiresManualCodeUpdate = true;
         }
 
-        Set<String> proxyServers = new LinkedHashSet<>();
-        Matcher mProxy = Pattern.compile("\"([a-zA-Z0-9.-]+\\.nova-app\\.eu)\"").matcher(combined);
-        while (mProxy.find()) {
-            proxyServers.add(mProxy.group(1));
-        }
-        if (proxyServers.isEmpty()) {
-            proxyServers.add("<relay-host>");
-            proxyServers.add("<relay-host-2>");
-            proxyServers.add("<relay-host-3>");
-        }
+        // Preserve configured relay servers from installed config or BuildConfig (upstream hides relay list)
+        Set<String> proxyServers = loadExistingProxyServers(ctx);
 
         Set<String> gateHosts = new LinkedHashSet<>();
         int gateIdx = proxyRs.indexOf("fn is_gate_host");
@@ -264,6 +256,48 @@ public final class UpstreamChecker {
         for (String s : gateHosts) gh.put(s);
         cfg.put("gate_hosts", gh);
         res.latestBypassConfigJson = cfg.toString(2);
+    }
+
+    private static Set<String> loadExistingProxyServers(Context ctx) {
+        Set<String> servers = new LinkedHashSet<>();
+        if (ctx != null) {
+            try {
+                java.io.File override = new java.io.File(ctx.getFilesDir(), "bypass_config.json");
+                if (override.isFile()) {
+                    try (java.io.FileInputStream fis = new java.io.FileInputStream(override)) {
+                        JSONObject obj = new JSONObject(UpdatePrefs.readAllUtf8(fis));
+                        JSONArray arr = obj.optJSONArray("proxy_servers");
+                        if (arr != null) {
+                            for (int i = 0; i < arr.length(); i++) {
+                                String s = arr.optString(i, "").trim();
+                                if (!s.isEmpty()) servers.add(s);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+            if (servers.isEmpty()) {
+                try {
+                    String asset = UpdatePrefs.readAssetText(ctx, "bypass_config.json");
+                    if (asset != null) {
+                        JSONObject obj = new JSONObject(asset);
+                        JSONArray arr = obj.optJSONArray("proxy_servers");
+                        if (arr != null) {
+                            for (int i = 0; i < arr.length(); i++) {
+                                String s = arr.optString(i, "").trim();
+                                if (!s.isEmpty()) servers.add(s);
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        if (servers.isEmpty()) {
+            for (String s : com.agy.BuildConfig.AGU2_PROXY_SERVERS) {
+                if (s != null && !s.trim().isEmpty()) servers.add(s.trim());
+            }
+        }
+        return servers;
     }
 
     private static String fetchLatestReleaseTag(String urlStr) throws Exception {

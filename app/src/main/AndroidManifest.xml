@@ -49,7 +49,6 @@
     <uses-permission android:name="com.antigravity.mobile.permission.INTERNAL_BROADCAST" />
 
     <application
-        android:debuggable="true"
         android:allowBackup="false"
         android:hardwareAccelerated="true"
         android:largeHeap="true"

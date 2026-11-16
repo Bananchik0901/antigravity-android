@@ -27,6 +27,10 @@ __pycache__/
 temp/
 standalone_runtime/
 
+# Local bypass secrets (relay host list & token unwrap key, never committed)
+tools/.bypass_secrets.json
+.group_key
+
 # IDE and OS
 .DS_Store
 *.swp

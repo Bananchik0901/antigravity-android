@@ -6,9 +6,9 @@ import json
 import subprocess
 import sys
 
-WORK_DIR = r"<WORK_DIR>"
-BASE_APK = os.path.join(WORK_DIR, "phone_base.apk")
-APP_DIR = os.path.join(WORK_DIR, "antigravity-android")
+APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WORK_DIR = os.environ.get("AGY_WORK_DIR", os.path.dirname(APP_DIR))
+BASE_APK = os.environ.get("AGY_BASE_APK", os.path.join(WORK_DIR, "phone_base.apk"))
 RESOURCES_APK = os.path.join(APP_DIR, r"build\base_resources.apk")
 OBJ_DIR = os.path.join(APP_DIR, r"build\obj")
 DEX_DIR = os.path.join(APP_DIR, r"build\dex")
@@ -18,16 +18,56 @@ OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
 FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.2-mobile.apk")
 
-BUILD_TOOLS = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0"
+BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
 ZIPALIGN = os.path.join(BUILD_TOOLS, "zipalign.exe")
 APKSIGNER = os.path.join(BUILD_TOOLS, "apksigner.bat")
 KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
 R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
 ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
-JAVA_HOME = r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK"
+JAVA_HOME = os.environ.get("JAVA_HOME", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK")
 JAVAC_EXE = os.path.join(JAVA_HOME, "bin", "javac.exe")
 JAVA_EXE = os.path.join(JAVA_HOME, "bin", "java.exe")
+
+SECRETS_FILE = os.path.join(APP_DIR, r"tools\.bypass_secrets.json")
+agu2_t_hex = os.environ.get("AGY_AGU2_T_HEX", "").strip()
+agu2_servers = [s.strip() for s in os.environ.get("AGY_PROXY_SERVERS", "").split(",") if s.strip()]
+if os.path.isfile(SECRETS_FILE):
+    with open(SECRETS_FILE, "r", encoding="utf-8") as sf:
+        sdata = json.load(sf)
+    if not agu2_t_hex:
+        agu2_t_hex = str(sdata.get("t_hex", "")).strip()
+    if not agu2_servers and isinstance(sdata.get("proxy_servers"), list):
+        agu2_servers = [str(s).strip() for s in sdata["proxy_servers"] if str(s).strip()]
+
+def _jstr(v):
+    return '"' + str(v).replace('\\', '\\\\').replace('"', '\\"') + '"'
+
+build_cfg_path = os.path.join(APP_DIR, r"build\gen\com\agy\BuildConfig.java")
+os.makedirs(os.path.dirname(build_cfg_path), exist_ok=True)
+servers_lit = "new String[] {" + ", ".join(_jstr(s) for s in agu2_servers) + "}" if agu2_servers else "new String[0]"
+with open(build_cfg_path, "w", encoding="utf-8") as cf:
+    cf.write(f'''package com.agy;
+
+public final class BuildConfig {{
+    private BuildConfig() {{}}
+
+    public static final String APPLICATION_ID = "com.antigravity.mobile";
+    public static final int PORT = 45157;
+    public static final int PORT_DEV = 45157;
+    public static final int GATEWAY_PORT = 45160;
+    public static final String CORE_VERSION = "2.32.1";
+    public static final String APP_VERSION_NAME = "2.32.1.2-mobile";
+    public static final int APP_VERSION_CODE = 23;
+    public static final String OAUTH_SCHEME = "antigravity";
+    public static final String APP_NAME = "Antigravity";
+    public static final int MIN_API = 24;
+    public static final int TARGET_SDK = 28;
+    public static final boolean DEBUG = false;
+    public static final String AGU2_WRAP_KEY = {_jstr(agu2_t_hex)};
+    public static final String[] AGU2_PROXY_SERVERS = {servers_lit};
+}}
+''')
 
 print("[0/5] Compiling Java classes with javac...", flush=True)
 SRC_DIR = os.path.join(APP_DIR, r"app\src\main\java")
@@ -124,10 +164,13 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
-    with open(os.path.join(APP_DIR, r"app\src\main\assets\bypass_config.json"), "rb") as f:
-        bypass_cfg_bytes = f.read()
-        zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
-    bypass_ver = json.loads(bypass_cfg_bytes.decode("utf-8")).get("version", "2.32.2")
+    with open(os.path.join(APP_DIR, r"app\src\main\assets\bypass_config.json"), "r", encoding="utf-8") as f:
+        bypass_cfg_obj = json.load(f)
+    if agu2_servers and not bypass_cfg_obj.get("proxy_servers"):
+        bypass_cfg_obj["proxy_servers"] = agu2_servers
+    bypass_cfg_bytes = json.dumps(bypass_cfg_obj, indent=2).encode("utf-8")
+    zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
+    bypass_ver = bypass_cfg_obj.get("version", "2.32.2")
     version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": bypass_ver, "drive_version": "2.32.1.2"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
