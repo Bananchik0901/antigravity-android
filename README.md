@@ -12,18 +12,14 @@
 
 **Autonomous AI development environment running natively on Android & ARM64 (Core `2.32.1`).**
 
-  [![Android](https://img.shields.io/badge/Android-7.0--16-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
+  [![Android](https://img.shields.io/badge/Android-7.0--17-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
   [![Release](https://img.shields.io/badge/Version-2.32.1.2-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
   [![License](https://img.shields.io/badge/License-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero_light.png">
-    <img alt="Antigravity Interface" src="docs/assets/hero_dark.png" width="100%" style="border-radius: 12px; border: 1px solid rgba(128,128,128,0.2);" />
-  </picture>
+  <img alt="Antigravity Interface" src="docs/assets/hero_mobile.jpg" width="340" style="border-radius: 16px; border: 1px solid rgba(128,128,128,0.2);" />
 
 </div>
 
@@ -39,7 +35,7 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 
 ### Highlights in v2.32.1.2
 
-* **Antigravity Core `2.32.1` + Android 15/16 Ready:** Updated upstream runtime with `disable_sandbox` & Bionic linker fixes (`LD_LIBRARY_PATH` isolation) and `targetSdkVersion 28`.
+* **Antigravity Core `2.32.1` + Android 15–17 Ready:** Updated upstream runtime with `disable_sandbox` & Bionic linker fixes (`LD_LIBRARY_PATH` isolation) and `targetSdkVersion 28`.
 * **Two APK Editions:**
   * `Antigravity-2.32.1.2-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
   * `Antigravity-2.32.1.2-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).

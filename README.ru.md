@@ -12,18 +12,14 @@
 
 **Автономная среда разработки на базе ИИ, работающая нативно на Android и ARM64 (Ядро `2.32.1`).**
 
-  [![Android](https://img.shields.io/badge/Android-7.0--16-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
+  [![Android](https://img.shields.io/badge/Android-7.0--17-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
   [![Release](https://img.shields.io/badge/Версия-2.32.1.2-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
   [![License](https://img.shields.io/badge/Лицензия-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
 
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/hero_dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="docs/assets/hero_light.png">
-    <img alt="Интерфейс Antigravity" src="docs/assets/hero_dark.png" width="100%" style="border-radius: 12px; border: 1px solid rgba(128,128,128,0.2);" />
-  </picture>
+  <img alt="Интерфейс Antigravity" src="docs/assets/hero_mobile.jpg" width="340" style="border-radius: 16px; border: 1px solid rgba(128,128,128,0.2);" />
 
 </div>
 
@@ -39,7 +35,7 @@
 
 ### Главное в v2.32.1.2
 
-* **Ядро `2.32.1` и поддержка Android 15/16:** Обновлённый рантайм с патчем `disable_sandbox`, изоляцией `LD_LIBRARY_PATH` для Bionic-утилит и `targetSdkVersion 28`.
+* **Ядро `2.32.1` и поддержка Android 15–17:** Обновлённый рантайм с патчем `disable_sandbox`, изоляцией `LD_LIBRARY_PATH` для Bionic-утилит и `targetSdkVersion 28`.
 * **Две редакции APK:**
   * `Antigravity-2.32.1.2-mobile.apk` — редакция с обходом (`@nova_txt` AGU2 локальный CONNECT-прокси `127.0.0.1:45162`, проверка лицензионного ключа, патчи `cli_gate` / `enterprise_auth` / `ineligible`).
   * `Antigravity-2.32.1.2-vanilla.apk` — чистый порт (100% оригинальный `liblanguage_server.so`, прямое подключение без прокси).
