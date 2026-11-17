@@ -10,11 +10,11 @@
 
   # Antigravity для Android
 
-**Автономная среда разработки на базе ИИ, работающая нативно на Android и ARM64 (Ядро `2.32.1`).**
+**Автономная среда разработки на базе ИИ, работающая нативно на Android и ARM64 (Ядро `2.32.2`).**
 
   [![Android](https://img.shields.io/badge/Android-7.0--17-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
-  [![Release](https://img.shields.io/badge/Версия-2.32.1.2-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
+  [![Release](https://img.shields.io/badge/Версия-2.32.2.0-blueviolet?style=flat-square)](https://github.com/Bananchik09/antigravity-android/releases)
   [![License](https://img.shields.io/badge/Лицензия-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
@@ -37,12 +37,12 @@
 
 ---
 
-### Главное в v2.32.1.2
+### Главное в v2.32.2.0
 
-* **Ядро `2.32.1` и поддержка Android 15–17:** Обновлённый рантайм с патчем `disable_sandbox`, изоляцией `LD_LIBRARY_PATH` для Bionic-утилит и `targetSdkVersion 28`.
+* **Ядро `2.32.2` и поддержка Android 15–17:** Обновлённый рантайм с патчем `disable_sandbox`, изоляцией `LD_LIBRARY_PATH` для Bionic-утилит и `targetSdkVersion 28`.
 * **Две редакции APK:**
-  * `Antigravity-2.32.1.2-mobile.apk` — редакция с обходом (`@nova_txt` AGU2 локальный CONNECT-прокси `127.0.0.1:45162`, проверка лицензионного ключа, патчи `cli_gate` / `enterprise_auth` / `ineligible`).
-  * `Antigravity-2.32.1.2-vanilla.apk` — чистый порт (100% оригинальный `liblanguage_server.so`, прямое подключение без прокси).
+  * `Antigravity-2.32.2.0-mobile.apk` — редакция с обходом (`@nova_txt` AGU2 локальный CONNECT-прокси `127.0.0.1:45162`, проверка лицензионного ключа, патчи `cli_gate` / `enterprise_auth` / `ineligible`).
+  * `Antigravity-2.32.2.0-vanilla.apk` — чистый порт (100% оригинальный `liblanguage_server.so`, прямое подключение без прокси).
 * **Встроенный автоапдейтер с пересборкой на устройстве:** Проверяет обновления Ядра, Обхода (`confeden/Antigravity`) и APK на GitHub Releases, пересобирает и переподписывает APK прямо на телефоне (с пометкой `-autoup`), поддерживает откат версии.
 * **Доработки Web UI:** Вкладки *App* и *Browser* в настройках, мобильные *Projects* и *Not in Project: Conversations*, удержание WebView-потоков в фоне и автоматический OAuth для плагинов.
 * **Модульная архитектура и ARMv8.0-A:** Разделение на 6 подсистем (`modules/*`), эмуляция атомиков `liblse_compat.so` + `sigill_handler`, микро-демон `agy-daemon`.
@@ -62,8 +62,8 @@
 ### Быстрый старт
 
 1. **Скачайте APK** со страницы [Releases](https://github.com/Bananchik09/antigravity-android/releases):
-   * `Antigravity-2.32.1.2-mobile.apk` — версия с обходом (AGU2-прокси + патчи ограничений).
-   * `Antigravity-2.32.1.2-vanilla.apk` — чистая версия (оригинальное ядро без прокси).
+   * `Antigravity-2.32.2.0-mobile.apk` — версия с обходом (AGU2-прокси + патчи ограничений).
+   * `Antigravity-2.32.2.0-vanilla.apk` — чистая версия (оригинальное ядро без прокси).
 2. **Предоставьте доступ к памяти** (`Все файлы`). *(Опционально: подключите Shizuku или Root для привилегированной оболочки)*.
 3. **Установите рабочее окружение** в терминале или через агента:
    ```bash
