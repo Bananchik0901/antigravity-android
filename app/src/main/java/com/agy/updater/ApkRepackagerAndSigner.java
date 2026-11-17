@@ -75,9 +75,9 @@ public final class ApkRepackagerAndSigner {
                     UpdatePrefs.getCurrentVersionName(ctx));
         }
 
-        File outApk = new File(workDir, "antigravity_drive_update.apk");
-        if (cb != null) cb.onProgress("Скачивание APK с Google Диска...");
-        downloadToFile(downloadUrl, outApk, cb);
+        File outApk = new File(workDir, "antigravity_github_update.apk");
+        if (cb != null) cb.onProgress("Скачивание APK с GitHub...");
+        downloadToFile(downloadUrl, outApk, cb, "Скачивание APK");
         return outApk;
     }
 
@@ -116,7 +116,7 @@ public final class ApkRepackagerAndSigner {
         if (updateCore) {
             if (cb != null) cb.onProgress("Скачивание ядра " + check.latestCoreVersion + " (~226 МБ)...");
             patchedLsFile = new File(workDir, "language_server.tmp");
-            downloadToFile(check.latestCoreDownloadUrl, patchedLsFile, cb);
+            downloadToFile(check.latestCoreDownloadUrl, patchedLsFile, cb, "Скачивание ядра");
             newLsSha256 = CoreBinaryPatcher.patchFile(patchedLsFile, cb::onProgress);
             newCoreVer = check.latestCoreVersion;
         }
@@ -418,40 +418,57 @@ public final class ApkRepackagerAndSigner {
         ctx.startActivity(intent);
     }
 
-    private static void downloadToFile(String urlStr, File dest, ProgressCallback cb) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
-        conn.setConnectTimeout(15000);
-        conn.setReadTimeout(30000);
-        conn.setRequestProperty("User-Agent", "Antigravity-Android-Updater/1.0");
+    private static void downloadToFile(String urlStr, File dest, ProgressCallback cb, String label) throws Exception {
+        String currentUrl = urlStr;
+        HttpURLConnection conn = null;
         try {
-            int code = conn.getResponseCode();
-            if (code < 200 || code >= 300) {
-                throw new IOException("HTTP " + code + " downloading " + urlStr);
-            }
-            long total = conn.getContentLengthLong();
-            long downloaded = 0;
-            long lastReport = 0;
-            byte[] buf = new byte[128 * 1024];
-            try (InputStream is = new BufferedInputStream(conn.getInputStream(), 128 * 1024);
-                 FileOutputStream fos = new FileOutputStream(dest)) {
-                int n;
-                while ((n = is.read(buf)) != -1) {
-                    fos.write(buf, 0, n);
-                    downloaded += n;
-                    if (cb != null && downloaded - lastReport >= 10 * 1024 * 1024) {
-                        lastReport = downloaded;
-                        if (total > 0) {
-                            int pct = (int) ((downloaded * 100) / total);
-                            cb.onProgress("Скачивание ядра: " + pct + "% ("
-                                    + (downloaded / (1024 * 1024)) + "/" + (total / (1024 * 1024)) + " МБ)");
-                        } else {
-                            cb.onProgress("Скачивание ядра: " + (downloaded / (1024 * 1024)) + " МБ");
+            for (int hop = 0; hop < 6; hop++) {
+                conn = (HttpURLConnection) new URL(currentUrl).openConnection();
+                conn.setInstanceFollowRedirects(false);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(30000);
+                conn.setRequestProperty("User-Agent", "Antigravity-Android-Updater/1.0");
+                int code = conn.getResponseCode();
+                if (code >= 300 && code < 400) {
+                    String loc = conn.getHeaderField("Location");
+                    conn.disconnect();
+                    conn = null;
+                    if (loc == null || loc.isEmpty()) {
+                        throw new IOException("Redirect without Location from " + currentUrl);
+                    }
+                    currentUrl = new URL(new URL(currentUrl), loc).toString();
+                    continue;
+                }
+                if (code < 200 || code >= 300) {
+                    throw new IOException("HTTP " + code + " downloading " + currentUrl);
+                }
+                long total = conn.getContentLengthLong();
+                long downloaded = 0;
+                long lastReport = 0;
+                byte[] buf = new byte[128 * 1024];
+                try (InputStream is = new BufferedInputStream(conn.getInputStream(), 128 * 1024);
+                     FileOutputStream fos = new FileOutputStream(dest)) {
+                    int n;
+                    while ((n = is.read(buf)) != -1) {
+                        fos.write(buf, 0, n);
+                        downloaded += n;
+                        if (cb != null && downloaded - lastReport >= 10 * 1024 * 1024) {
+                            lastReport = downloaded;
+                            if (total > 0) {
+                                int pct = (int) ((downloaded * 100) / total);
+                                cb.onProgress(label + ": " + pct + "% ("
+                                        + (downloaded / (1024 * 1024)) + "/" + (total / (1024 * 1024)) + " МБ)");
+                            } else {
+                                cb.onProgress(label + ": " + (downloaded / (1024 * 1024)) + " МБ");
+                            }
                         }
                     }
                 }
+                return;
             }
+            throw new IOException("Too many redirects downloading " + urlStr);
         } finally {
-            conn.disconnect();
+            if (conn != null) conn.disconnect();
         }
     }
 

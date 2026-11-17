@@ -25,7 +25,11 @@ public final class UpstreamChecker {
             "https://github.com/confeden/Antigravity/releases/latest";
     private static final String BYPASS_RAW_BASE =
             "https://raw.githubusercontent.com/confeden/Antigravity/main/src/";
-    public static final String GDRIVE_FOLDER_ID = "1G5pZieHp--dHqtq2dFqInBuZDCsRxQoz";
+    public static final String APP_GITHUB_REPO = "Bananchik09/antigravity-android";
+    private static final String APP_RELEASES_LATEST_URL =
+            "https://github.com/" + APP_GITHUB_REPO + "/releases/latest";
+    private static final String APP_EXPANDED_ASSETS_URL =
+            "https://github.com/" + APP_GITHUB_REPO + "/releases/expanded_assets/";
 
     public static final class CheckResult {
         public String installedAppVersion;
@@ -123,86 +127,72 @@ public final class UpstreamChecker {
             }
         }
 
-        // 3. Check Google Drive special folder for full App APK updates
+        // 3. Check GitHub Releases (Bananchik09/antigravity-android) for full App APK updates
         try {
-            checkGoogleDriveFolder(res);
+            checkGitHubAppRelease(res);
         } catch (Exception e) {
-            Log.w(TAG, "Drive check failed: " + e.getMessage());
+            Log.w(TAG, "GitHub APK check failed: " + e.getMessage());
             res.driveError = e.getMessage();
         }
 
         return res;
     }
 
-    private static void checkGoogleDriveFolder(CheckResult res) throws Exception {
-        String html = httpGetString("https://drive.google.com/embeddedfolderview?id=" + GDRIVE_FOLDER_ID + "#list");
+    private static void checkGitHubAppRelease(CheckResult res) throws Exception {
+        String latestTag = fetchLatestReleaseTag(APP_RELEASES_LATEST_URL);
+        if (latestTag == null || latestTag.isEmpty()) return;
+
         String flavorSuffix = UpdatePrefs.isVanillaBuild() ? "-vanilla.apk" : "-mobile.apk";
-
-        // First look for direct APK entries: Antigravity-X.Y.Z-mobile.apk / -vanilla.apk
         String bestVer = null;
-        String bestFileId = null;
         String bestFileName = null;
+        String bestUrl = null;
 
-        Matcher mFile = Pattern.compile(
-                "/file/d/([a-zA-Z0-9_-]+)/[^\"']*[\"'][^>]*>.*?class=\"flip-entry-title\"[^>]*>([^<]+)<",
-                Pattern.DOTALL).matcher(html);
-        while (mFile.find()) {
-            String id = mFile.group(1);
-            String name = mFile.group(2).trim();
-            if (name.startsWith("Antigravity-") && name.endsWith(flavorSuffix)) {
-                String ver = name.substring("Antigravity-".length(), name.length() - flavorSuffix.length());
+        try {
+            String expandedHtml = httpGetString(APP_EXPANDED_ASSETS_URL + latestTag);
+            Matcher m = Pattern.compile(
+                    "\"(/" + Pattern.quote(APP_GITHUB_REPO) + "/releases/download/[^\"<>]+/"
+                            + "(Antigravity-([^\"/<>]+?)" + Pattern.quote(flavorSuffix) + "))\""
+            ).matcher(expandedHtml);
+            while (m.find()) {
+                String path = m.group(1);
+                String name = m.group(2);
+                String ver = m.group(3);
                 if (bestVer == null || UpdatePrefs.compareVersions(ver, bestVer) > 0) {
                     bestVer = ver;
-                    bestFileId = id;
                     bestFileName = name;
+                    bestUrl = "https://github.com" + path;
                 }
             }
-        }
+        } catch (Exception ignored) {}
 
-        // Also look for Antigravity-X.Y.Z subfolders if no direct newer APK found
-        String bestFolderVer = null;
-        String bestFolderId = null;
-        Matcher mFolder = Pattern.compile(
-                "/drive/folders/([a-zA-Z0-9_-]+)[^\"']*[\"'][^>]*>.*?class=\"flip-entry-title\"[^>]*>([^<]+)<",
-                Pattern.DOTALL).matcher(html);
-        while (mFolder.find()) {
-            String id = mFolder.group(1);
-            String name = mFolder.group(2).trim();
-            if (name.startsWith("Antigravity-")) {
-                String ver = name.substring("Antigravity-".length());
-                if (bestFolderVer == null || UpdatePrefs.compareVersions(ver, bestFolderVer) > 0) {
-                    bestFolderVer = ver;
-                    bestFolderId = id;
-                }
-            }
-        }
-
-        if (bestFolderId != null && (bestVer == null || UpdatePrefs.compareVersions(bestFolderVer, bestVer) > 0)) {
-            String subHtml = httpGetString("https://drive.google.com/embeddedfolderview?id=" + bestFolderId + "#list");
-            Matcher mSub = Pattern.compile(
-                    "/file/d/([a-zA-Z0-9_-]+)/[^\"']*[\"'][^>]*>.*?class=\"flip-entry-title\"[^>]*>([^<]+)<",
-                    Pattern.DOTALL).matcher(subHtml);
-            while (mSub.find()) {
-                String id = mSub.group(1);
-                String name = mSub.group(2).trim();
-                if (name.endsWith(flavorSuffix)) {
-                    if (name.startsWith("Antigravity-")) {
-                        bestVer = name.substring("Antigravity-".length(), name.length() - flavorSuffix.length());
-                    } else {
-                        bestVer = bestFolderVer;
+        if (bestUrl == null) {
+            String apiJson = httpGetString("https://api.github.com/repos/" + APP_GITHUB_REPO + "/releases/latest");
+            JSONObject obj = new JSONObject(apiJson);
+            String tagVer = obj.optString("tag_name", latestTag).replaceFirst("^v", "").trim();
+            JSONArray assets = obj.optJSONArray("assets");
+            if (assets != null) {
+                for (int i = 0; i < assets.length(); i++) {
+                    JSONObject a = assets.getJSONObject(i);
+                    String name = a.optString("name", "");
+                    String dl = a.optString("browser_download_url", "");
+                    if (name.startsWith("Antigravity-") && name.endsWith(flavorSuffix) && !dl.isEmpty()) {
+                        String ver = name.substring("Antigravity-".length(), name.length() - flavorSuffix.length());
+                        if (ver.isEmpty()) ver = tagVer;
+                        if (bestVer == null || UpdatePrefs.compareVersions(ver, bestVer) > 0) {
+                            bestVer = ver;
+                            bestFileName = name;
+                            bestUrl = dl;
+                        }
                     }
-                    bestFileId = id;
-                    bestFileName = name;
-                    break;
                 }
             }
         }
 
-        if (bestVer != null && bestFileId != null
+        if (bestVer != null && bestUrl != null
                 && UpdatePrefs.compareVersions(bestVer, res.installedDriveVersion) > 0) {
             res.latestDriveVersion = bestVer;
             res.latestDriveApkName = bestFileName;
-            res.latestDriveDownloadUrl = "https://drive.usercontent.google.com/download?id=" + bestFileId + "&confirm=t";
+            res.latestDriveDownloadUrl = bestUrl;
             res.hasDriveUpdate = true;
         }
     }

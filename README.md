@@ -43,7 +43,7 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 * **Two APK Editions:**
   * `Antigravity-2.32.1.2-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
   * `Antigravity-2.32.1.2-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
-* **On-Device Self-Rebuilding Auto-Updater:** Checks Core, Bypass (`confeden/Antigravity`), and full APK releases (`Google Drive`), repacks & re-signs the APK on-device (`-autoup` suffix), and supports rollback.
+* **On-Device Self-Rebuilding Auto-Updater:** Checks Core, Bypass (`confeden/Antigravity`), and full APK releases (`GitHub Releases`), repacks & re-signs the APK on-device (`-autoup` suffix), and supports rollback.
 * **Web UI Enhancements:** Exposed `App` and `Browser` settings, mobile `Projects` and `Not in Project: Conversations`, background WebView stream keep-alive, and automatic loopback plugin OAuth.
 * **Modular Core & ARMv8.0-A Support:** Clean separation into 6 subsystems (`modules/*`), `liblse_compat.so` + `sigill_handler`, and `agy-daemon`.
 

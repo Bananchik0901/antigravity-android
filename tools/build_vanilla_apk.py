@@ -9,6 +9,7 @@ import sys
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK_DIR = os.environ.get("AGY_WORK_DIR", os.path.dirname(APP_DIR))
 BASE_APK = os.environ.get("AGY_BASE_APK", os.path.join(WORK_DIR, "phone_base.apk"))
+STOCK_LS = os.environ.get("AGY_STOCK_LS", os.path.join(WORK_DIR, "language_server_2.32.2.so"))
 SRC_DIR = os.path.join(APP_DIR, r"app\src\main\java")
 GEN_DIR = os.path.join(APP_DIR, r"build\gen")
 RES_DIR = os.path.join(APP_DIR, r"app\src\main\res")
@@ -22,7 +23,7 @@ CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 RESOURCES_APK = os.path.join(BUILD_DIR, "resources.apk")
 OUTPUT_UNALIGNED = os.path.join(BUILD_DIR, "vanilla_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(BUILD_DIR, "vanilla_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.1.2-vanilla.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.32.2.0-vanilla.apk")
 
 BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -106,9 +107,9 @@ public final class BuildConfig {
     public static final int PORT = 45157;
     public static final int PORT_DEV = 45157;
     public static final int GATEWAY_PORT = 45160;
-    public static final String CORE_VERSION = "2.32.1";
-    public static final String APP_VERSION_NAME = "2.32.1.2-vanilla";
-    public static final int APP_VERSION_CODE = 23;
+    public static final String CORE_VERSION = "2.32.2";
+    public static final String APP_VERSION_NAME = "2.32.2.0-vanilla";
+    public static final int APP_VERSION_CODE = 25;
     public static final String OAUTH_SCHEME = "antigravity";
     public static final String APP_NAME = "Antigravity";
     public static final int MIN_API = 24;
@@ -171,8 +172,16 @@ print(f"  aapt generated resources.apk ({os.path.getsize(RESOURCES_APK)} bytes)"
 print("[4/5] Packaging unaligned Vanilla APK with STOCK liblanguage_server.so...")
 # Read stock binary and manifest directly from phone_base.apk
 with zipfile.ZipFile(BASE_APK, "r") as zin:
-    stock_ls_bytes = zin.read("assets/runtime/bin/liblanguage_server.so")
-    stock_manifest_bytes = zin.read("assets/runtime/manifest.json")
+    if os.path.isfile(STOCK_LS):
+        print(f"  Using external stock core: {STOCK_LS}")
+        with open(STOCK_LS, "rb") as sf:
+            stock_ls_bytes = sf.read()
+        m = json.loads(zin.read("assets/runtime/manifest.json").decode())
+        m["files"]["bin/liblanguage_server.so"] = hashlib.sha256(stock_ls_bytes).hexdigest()
+        stock_manifest_bytes = json.dumps(m, indent=2).encode()
+    else:
+        stock_ls_bytes = zin.read("assets/runtime/bin/liblanguage_server.so")
+        stock_manifest_bytes = zin.read("assets/runtime/manifest.json")
 
 print(f"  Stock liblanguage_server.so size: {len(stock_ls_bytes)} bytes, SHA-256: {hashlib.sha256(stock_ls_bytes).hexdigest()}")
 
@@ -206,7 +215,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
-    version_meta_bytes = json.dumps({"core_version": "2.32.1", "bypass_version": "none", "drive_version": "2.32.1.2"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.32.2", "bypass_version": "none", "drive_version": "2.32.2.0"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:

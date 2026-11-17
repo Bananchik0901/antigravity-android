@@ -90,7 +90,7 @@ public final class UpdateUiHelper {
             }
         }
         if (res.hasDriveUpdate) {
-            sb.append("• Приложение (Google Диск): ").append(res.installedDriveVersion)
+            sb.append("• Приложение (GitHub): ").append(res.installedDriveVersion)
                     .append(" → ").append(res.latestDriveVersion)
                     .append(" (").append(res.latestDriveApkName).append(")\n");
         }
@@ -114,7 +114,7 @@ public final class UpdateUiHelper {
 
         final CheckBox cbDrive = res.hasDriveUpdate ? new CheckBox(activity) : null;
         if (cbDrive != null) {
-            cbDrive.setText("Скачать готовый APK с Google Диска (" + res.latestDriveVersion + ", уже со всеми компонентами)");
+            cbDrive.setText("Скачать готовый APK с GitHub (" + res.latestDriveVersion + ", уже со всеми компонентами)");
             boolean preferDrive = !res.hasCoreUpdate && !res.hasBypassUpdate;
             cbDrive.setChecked(preferDrive);
             box.addView(cbDrive);
@@ -184,7 +184,7 @@ public final class UpdateUiHelper {
 
     private static void startDriveInstall(Activity activity, UpstreamChecker.CheckResult res) {
         ProgressDialog pd = new ProgressDialog(activity);
-        pd.setTitle("Загрузка с Google Диска");
+        pd.setTitle("Загрузка с GitHub");
         pd.setMessage("Подготовка...");
         pd.setCancelable(false);
         pd.show();
