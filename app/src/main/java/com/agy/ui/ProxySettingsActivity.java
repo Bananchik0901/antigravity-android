@@ -105,7 +105,6 @@ public class ProxySettingsActivity extends Activity {
             bannerRoot.addView(tvRootStatus);
 
             root.addView(bannerRoot);
-            Toast.makeText(this, "Обнаружен Root: Shizuku не обязателен, но поддерживается", Toast.LENGTH_SHORT).show();
         }
 
         // --- SECTION 1: PROXY & BOT COMMAND ---

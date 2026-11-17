@@ -73,6 +73,7 @@ public class MainActivity extends Activity
     private boolean activityResumed = false;
     private int loadedGeneration = -1;
     private long splashDeadline;
+    private static boolean startupToastsShown = false;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
@@ -165,7 +166,18 @@ public class MainActivity extends Activity
         requestStoragePermissions();
 
         startCoreService();
-        android.widget.Toast.makeText(this, "сделано @bananchik0901 обход @nova_txt", android.widget.Toast.LENGTH_SHORT).show();
+        if (!startupToastsShown) {
+            startupToastsShown = true;
+            android.widget.Toast.makeText(this, "сделано @bananchik0901 обход @nova_txt", android.widget.Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                if (com.agy.shell.RootDetector.isRootAvailable()) {
+                    handler.post(() -> android.widget.Toast.makeText(
+                            MainActivity.this,
+                            "Обнаружен Root: Shizuku не обязателен, но поддерживается",
+                            android.widget.Toast.LENGTH_SHORT).show());
+                }
+            }, "StartupRootToast").start();
+        }
         com.agy.updater.UpdateUiHelper.checkAtStartup(this);
     }
 
