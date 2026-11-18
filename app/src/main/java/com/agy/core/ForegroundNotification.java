@@ -75,7 +75,7 @@ public final class ForegroundNotification {
                 .setContentText(status)
                 .setSmallIcon(icon)
                 .setContentIntent(piSettings)
-                .setOngoing(true)
+                .setOngoing(false)
                 .setAutoCancel(false)
                 .setOnlyAlertOnce(true);
 
@@ -102,14 +102,16 @@ public final class ForegroundNotification {
             Notification.Action actionMain = new Notification.Action.Builder(
                     icon, "Открыть Antigravity", piMain).build();
             builder.addAction(actionMain);
+
+            // Action 3: Stop Service
+            Intent stopIntent = new Intent(service, CoreServerService.class);
+            stopIntent.setAction(CoreServerService.ACTION_STOP_SERVICE);
+            PendingIntent piStop = PendingIntent.getService(service, 1004, stopIntent, flags);
+            Notification.Action actionStop = new Notification.Action.Builder(
+                    icon, "✕ Остановить", piStop).build();
+            builder.addAction(actionStop);
         }
 
-        Notification notification = builder.build();
-        // Make non-swipeable and persistent
-        notification.flags |= Notification.FLAG_ONGOING_EVENT
-                | Notification.FLAG_NO_CLEAR
-                | Notification.FLAG_FOREGROUND_SERVICE;
-
-        return notification;
+        return builder.build();
     }
 }

@@ -57,7 +57,7 @@ public final class BypassProxyServer {
     private volatile int proxyPort = DEFAULT_PROXY_PORT;
     private volatile String alpnProtocol = DEFAULT_ALPN;
     private volatile String[] gateHosts = DEFAULT_GATE_HOSTS;
-    private volatile String bypassVersion = "2.32.2";
+    private volatile String bypassVersion = "2.32.2.1";
 
     private static volatile BypassProxyServer instance;
 
@@ -120,7 +120,14 @@ public final class BypassProxyServer {
         try {
             org.json.JSONObject obj = new org.json.JSONObject(jsonStr);
             if (obj.has("version")) {
-                bypassVersion = obj.optString("version", bypassVersion);
+                String fileVer = obj.optString("version", "");
+                if (!fileVer.isEmpty() && com.agy.updater.UpdatePrefs.compareVersions(fileVer, bypassVersion) < 0) {
+                    Log.i(TAG, "Ignoring stale bypass_config.json v" + fileVer + " (built-in v" + bypassVersion + ")");
+                    return;
+                }
+                if (!fileVer.isEmpty()) {
+                    bypassVersion = fileVer;
+                }
             }
             if (obj.has("proxy_port")) {
                 int p = obj.optInt("proxy_port", DEFAULT_PROXY_PORT);

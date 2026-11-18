@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 public final class CoreServerService extends Service {
 
     private static final String TAG = "CoreServer";
+    public static final String ACTION_STOP_SERVICE = "com.antigravity.mobile.ACTION_STOP_SERVICE";
 
     private RuntimeManager runtime;
     private WakeLockHolder wakeLock;
@@ -126,6 +127,7 @@ public final class CoreServerService extends Service {
                 if (openUrlWatcher != null) {
                     openUrlWatcher.stop();
                 }
+                stopForegroundCompat(false);
                 ForegroundNotification.update(CoreServerService.this,
                         "Core stopped — open app to retry");
             }
@@ -160,9 +162,32 @@ public final class CoreServerService extends Service {
         super.onDestroy();
     }
 
+    @SuppressWarnings("deprecation")
+    private void stopForegroundCompat(boolean removeNotification) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            stopForeground(removeNotification ? STOP_FOREGROUND_REMOVE : STOP_FOREGROUND_DETACH);
+        } else {
+            stopForeground(removeNotification);
+        }
+    }
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY;
+        if (intent != null && ACTION_STOP_SERVICE.equals(intent.getAction())) {
+            Log.i(TAG, "Stop requested from notification");
+            stopForegroundCompat(true);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        return START_NOT_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        Log.i(TAG, "App task removed; stopping background service");
+        stopForegroundCompat(true);
+        stopSelf();
+        super.onTaskRemoved(rootIntent);
     }
 
     @Override

@@ -83,6 +83,10 @@ public final class UpdatePrefs {
                 if (!v.isEmpty()) return v;
             } catch (Exception ignored) {}
         }
+        String cfgCore = com.agy.BuildConfig.CORE_VERSION;
+        if (cfgCore != null && !cfgCore.isEmpty()) {
+            return cfgCore;
+        }
         try {
             PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
             if (pi.versionName != null) {
@@ -94,22 +98,23 @@ public final class UpdatePrefs {
 
     public static String getInstalledBypassVersion(Context ctx) {
         if (isVanillaBuild()) return "none";
+        String best = "2.32.2.1";
         File override = new File(ctx.getFilesDir(), "bypass_config.json");
         if (override.exists()) {
             try (InputStream is = new java.io.FileInputStream(override)) {
                 String s = readAllUtf8(is);
                 String v = new JSONObject(s).optString("version", "");
-                if (!v.isEmpty()) return v;
+                if (!v.isEmpty() && compareVersions(v, best) > 0) best = v;
             } catch (Exception ignored) {}
         }
         String asset = readAssetText(ctx, "bypass_config.json");
         if (asset != null) {
             try {
                 String v = new JSONObject(asset).optString("version", "");
-                if (!v.isEmpty()) return v;
+                if (!v.isEmpty() && compareVersions(v, best) > 0) best = v;
             } catch (Exception ignored) {}
         }
-        return "2.31.2";
+        return best;
     }
 
     public static int getCurrentVersionCode(Context ctx) {
