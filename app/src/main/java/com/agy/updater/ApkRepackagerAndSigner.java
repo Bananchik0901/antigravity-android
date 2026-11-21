@@ -167,7 +167,11 @@ public final class ApkRepackagerAndSigner {
 
         if (cb != null) cb.onProgress("Подписание APK (APK Signature Scheme v2)...");
         byte[] p12Bytes = readAssetBytes(ctx, "updater/debug.p12");
-        signApkV2(unsignedApk, signedApk, p12Bytes, "android", "androiddebugkey");
+        String ksPass = com.agy.BuildConfig.UPDATER_KEYSTORE_PASS;
+        String ksAlias = com.agy.BuildConfig.UPDATER_KEYSTORE_ALIAS;
+        signApkV2(unsignedApk, signedApk, p12Bytes,
+                (ksPass != null && !ksPass.isEmpty()) ? ksPass : "android",
+                (ksAlias != null && !ksAlias.isEmpty()) ? ksAlias : "androiddebugkey");
         unsignedApk.delete();
 
         return signedApk;

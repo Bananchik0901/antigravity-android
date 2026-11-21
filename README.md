@@ -14,7 +14,7 @@
 
   [![Android](https://img.shields.io/badge/Android-7.0--17-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
-  [![Release](https://img.shields.io/badge/Version-2.34.0.0-blueviolet?style=flat-square)](https://github.com/Bananchik0901/antigravity-android/releases)
+  [![Release](https://img.shields.io/badge/Version-2.34.0.1-blueviolet?style=flat-square)](https://github.com/Bananchik0901/antigravity-android/releases)
   [![License](https://img.shields.io/badge/License-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
@@ -37,12 +37,13 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 
 ---
 
-### Highlights in v2.34.0.0
+### Highlights in v2.34.0.1
 
+* **Permanent Release Signing Key:** Signed with a dedicated 25-year RSA-2048 release certificate (APK Signature Scheme v2/v3) instead of the Android debug key. *(One-time clean install required when upgrading from `v2.34.0.0` or earlier.)*
 * **Antigravity Core `2.34.0` + Android 15–17 Ready:** Updated upstream runtime with `disable_sandbox` & Bionic linker fixes (`LD_LIBRARY_PATH` isolation) and `targetSdkVersion 28`.
 * **Two APK Editions:**
-  * `Antigravity-2.34.0.0-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
-  * `Antigravity-2.34.0.0-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
+  * `Antigravity-2.34.0.1-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
+  * `Antigravity-2.34.0.1-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
 * **On-Device Self-Rebuilding Auto-Updater:** Checks Core, Bypass (`confeden/Antigravity`), and full APK releases (`GitHub Releases`), repacks & re-signs the APK on-device (`-autoup` suffix), and supports rollback.
 * **Web UI Enhancements:** Exposed `App` and `Browser` settings, mobile `Projects` and `Not in Project: Conversations`, background WebView stream keep-alive, and automatic loopback plugin OAuth.
 * **Modular Core & ARMv8.0-A Support:** Clean separation into 6 subsystems (`modules/*`), `liblse_compat.so` + `sigill_handler`, and `agy-daemon`.
@@ -62,8 +63,8 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 ### Quick Start
 
 1. **Download APK** from [Releases](https://github.com/Bananchik0901/antigravity-android/releases):
-   * `Antigravity-2.34.0.0-mobile.apk` — Bypass edition (built-in AGU2 proxy + account gate patches).
-   * `Antigravity-2.34.0.0-vanilla.apk` — Clean Vanilla edition (stock core binary, direct connection).
+   * `Antigravity-2.34.0.1-mobile.apk` — Bypass edition (built-in AGU2 proxy + account gate patches).
+   * `Antigravity-2.34.0.1-vanilla.apk` — Clean Vanilla edition (stock core binary, direct connection).
 2. **Grant Storage Permission** (`All Files Access`). *(Optional: enable Shizuku or Root for elevated shell access)*.
 3. **Install Runtimes** via terminal or agent:
    ```bash

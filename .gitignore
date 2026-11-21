@@ -27,8 +27,11 @@ __pycache__/
 temp/
 standalone_runtime/
 
-# Local bypass secrets (relay host list & token unwrap key, never committed)
+# Local bypass secrets & release keystore (never committed)
 tools/.bypass_secrets.json
+tools/.release_signing.json
+tools/release.p12
+tools/release.keystore
 .group_key
 
 # IDE and OS

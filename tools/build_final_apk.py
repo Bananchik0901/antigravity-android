@@ -17,13 +17,26 @@ CLASSES_JAR = os.path.join(APP_DIR, r"build\classes.jar")
 CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.34.0.0-mobile.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.34.0.1-mobile.apk")
 
 BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
 ZIPALIGN = os.path.join(BUILD_TOOLS, "zipalign.exe")
 APKSIGNER = os.path.join(BUILD_TOOLS, "apksigner.bat")
 KEYSTORE = os.path.join(APP_DIR, r"tools\debug.keystore")
+KEYSTORE_P12 = os.path.join(APP_DIR, r"tools\debug.p12")
+KEYSTORE_PASS = "android"
+KEYSTORE_ALIAS = "androiddebugkey"
+RELEASE_SIGNING_FILE = os.path.join(APP_DIR, r"tools\.release_signing.json")
+if os.path.isfile(RELEASE_SIGNING_FILE):
+    with open(RELEASE_SIGNING_FILE, "r", encoding="utf-8") as _rsf:
+        _rs = json.load(_rsf)
+    _rel_ks = os.path.join(APP_DIR, "tools", _rs.get("keystore", "release.p12"))
+    if os.path.isfile(_rel_ks):
+        KEYSTORE = _rel_ks
+        KEYSTORE_P12 = _rel_ks
+        KEYSTORE_PASS = str(_rs.get("password", "")).strip() or KEYSTORE_PASS
+        KEYSTORE_ALIAS = str(_rs.get("alias", "")).strip() or KEYSTORE_ALIAS
 R8_JAR = os.path.join(APP_DIR, r"tools\r8.jar")
 ANDROID_JAR = os.path.join(APP_DIR, r"tools\android.jar")
 JAVA_HOME = os.environ.get("JAVA_HOME", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\OpenJDK")
@@ -58,8 +71,8 @@ public final class BuildConfig {{
     public static final int PORT_DEV = 45157;
     public static final int GATEWAY_PORT = 45160;
     public static final String CORE_VERSION = "2.34.0";
-    public static final String APP_VERSION_NAME = "2.34.0.0-mobile";
-    public static final int APP_VERSION_CODE = 27;
+    public static final String APP_VERSION_NAME = "2.34.0.1-mobile";
+    public static final int APP_VERSION_CODE = 28;
     public static final String OAUTH_SCHEME = "antigravity";
     public static final String APP_NAME = "Antigravity";
     public static final int MIN_API = 24;
@@ -67,6 +80,8 @@ public final class BuildConfig {{
     public static final boolean DEBUG = false;
     public static final String AGU2_WRAP_KEY = {_jstr(agu2_t_hex)};
     public static final String[] AGU2_PROXY_SERVERS = {servers_lit};
+    public static final String UPDATER_KEYSTORE_PASS = {_jstr(KEYSTORE_PASS)};
+    public static final String UPDATER_KEYSTORE_ALIAS = {_jstr(KEYSTORE_ALIAS)};
 }}
 ''')
 
@@ -168,7 +183,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
 
     zout.writestr("classes.dex", dex_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
-    with open(os.path.join(APP_DIR, r"tools\debug.p12"), "rb") as f:
+    with open(KEYSTORE_P12, "rb") as f:
         zout.writestr("assets/updater/debug.p12", f.read(), compress_type=zipfile.ZIP_DEFLATED)
     with open(os.path.join(APP_DIR, r"app\src\main\assets\bypass_config.json"), "r", encoding="utf-8") as f:
         bypass_cfg_obj = json.load(f)
@@ -177,7 +192,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
     bypass_cfg_bytes = json.dumps(bypass_cfg_obj, indent=2).encode("utf-8")
     zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
     bypass_ver = bypass_cfg_obj.get("version", "2.32.2.1")
-    version_meta_bytes = json.dumps({"core_version": "2.34.0", "bypass_version": bypass_ver, "drive_version": "2.34.0.0"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.34.0", "bypass_version": bypass_ver, "drive_version": "2.34.0.1"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with open(os.path.join(APP_DIR, r"web\generated\patches\theme_sync.js"), "r", encoding="utf-8") as f:
@@ -216,7 +231,7 @@ env = os.environ.copy()
 env["JAVA_HOME"] = JAVA_HOME
 env["PATH"] = os.path.join(JAVA_HOME, "bin") + ";" + env["PATH"]
 
-cmd_sign = [APKSIGNER, "sign", "--ks", KEYSTORE, "--ks-pass", "pass:android", "--key-pass", "pass:android", "--ks-key-alias", "androiddebugkey", "--out", FINAL_APK, OUTPUT_ALIGNED]
+cmd_sign = [APKSIGNER, "sign", "--ks", KEYSTORE, "--ks-pass", f"pass:{KEYSTORE_PASS}", "--key-pass", f"pass:{KEYSTORE_PASS}", "--ks-key-alias", KEYSTORE_ALIAS, "--out", FINAL_APK, OUTPUT_ALIGNED]
 subprocess.run(cmd_sign, check=True, env=env)
 
 print(f"SUCCESS! Created {FINAL_APK} ({os.path.getsize(FINAL_APK)} bytes)", flush=True)
