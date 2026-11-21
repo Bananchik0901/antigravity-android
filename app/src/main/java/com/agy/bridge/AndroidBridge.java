@@ -1,6 +1,10 @@
 package com.agy.bridge;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.JavascriptInterface;
 
 import com.agy.runtime.RuntimeManager;
@@ -12,6 +16,9 @@ import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Minimal, low-privilege JavaScript bridge for the app UI. It is visible to
@@ -20,6 +27,8 @@ import java.security.SecureRandom;
  */
 public final class AndroidBridge {
 
+    private final Context appContext;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final UiBridge ui = new UiBridge();
     private final ThemeBridge themeBridge;
     private final EngineBridge engine;
@@ -29,10 +38,10 @@ public final class AndroidBridge {
 
     public AndroidBridge(Context context, RuntimeManager runtime,
                          ShizukuBridge shizuku, ThemeManager theme) {
-        Context appContext = context.getApplicationContext();
+        this.appContext = context.getApplicationContext();
         this.themeBridge = new ThemeBridge(theme);
         this.engine = new EngineBridge(runtime);
-        this.config = new EngineConfigJson(appContext, runtime, engine, shizuku, themeBridge);
+        this.config = new EngineConfigJson(this.appContext, runtime, engine, shizuku, themeBridge);
     }
 
     /** Host activity, used to dismiss the native splash once the UI has painted. */
@@ -135,6 +144,76 @@ public final class AndroidBridge {
             com.agy.ui.download.FileDownloader.handleBlobData(
                     act, base64Data, filename, mimeType);
         }
+    }
+
+    /** Reads plain text from the Android clipboard for trusted top-level UI scripts. */
+    @JavascriptInterface
+    public String readClipboardText(String token) {
+        if (!matchesNativeBridgeToken(token)) {
+            return "";
+        }
+        final AtomicReference<String> result = new AtomicReference<>("");
+        final Runnable readTask = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ClipboardManager cm = (ClipboardManager) appContext.getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (cm != null && cm.hasPrimaryClip()) {
+                        ClipData clip = cm.getPrimaryClip();
+                        if (clip != null && clip.getItemCount() > 0) {
+                            CharSequence text = clip.getItemAt(0).coerceToText(appContext);
+                            if (text != null) {
+                                result.set(text.toString());
+                            }
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        };
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            readTask.run();
+        } else {
+            final CountDownLatch latch = new CountDownLatch(1);
+            mainHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        readTask.run();
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+            });
+            try {
+                latch.await(1500, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        return result.get();
+    }
+
+    /** Writes plain text to the Android clipboard for trusted top-level UI scripts. */
+    @JavascriptInterface
+    public boolean writeClipboardText(String token, final String text) {
+        if (!matchesNativeBridgeToken(token)) {
+            return false;
+        }
+        final String value = text != null ? text : "";
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ClipboardManager cm = (ClipboardManager) appContext.getSystemService(Context.CLIPBOARD_SERVICE);
+                    if (cm != null) {
+                        cm.setPrimaryClip(ClipData.newPlainText("antigravity", value));
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        });
+        return true;
     }
 
     private boolean matchesNativeBridgeToken(String candidate) {

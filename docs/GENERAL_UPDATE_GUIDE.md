@@ -20,11 +20,11 @@
      - `https://raw.githubusercontent.com/confeden/Antigravity/main/src/resolvers.rs`
 3. **Готовые APK с полным набором фиксов (GitHub Releases):**
    - Последний релиз (`Location: .../tag/vX.Y.Z`):
-     `https://github.com/Bananchik09/antigravity-android/releases/latest`
+     `https://github.com/Bananchik0901/antigravity-android/releases/latest`
    - Список ассетов без лимитов API:
-     `https://github.com/Bananchik09/antigravity-android/releases/expanded_assets/<tag>`
+     `https://github.com/Bananchik0901/antigravity-android/releases/expanded_assets/<tag>`
    - Fallback через GitHub API:
-     `https://api.github.com/repos/Bananchik09/antigravity-android/releases/latest`
+     `https://api.github.com/repos/Bananchik0901/antigravity-android/releases/latest`
 
 ---
 

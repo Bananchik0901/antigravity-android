@@ -82,11 +82,6 @@ function notify() {
   try {
     if (window.Android) {
       state.hasAndroid = true;
-      if (typeof window.Android.setThemeByUser === 'function') {
-        window.Android.setThemeByUser(theme);
-      } else if (typeof window.Android.setTheme === 'function') {
-        window.Android.setTheme(theme);
-      }
       if (typeof window.Android.onVisualThemeChanged === 'function') {
         window.Android.onVisualThemeChanged(theme);
       }

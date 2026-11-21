@@ -25,7 +25,7 @@ public final class UpstreamChecker {
             "https://github.com/confeden/Antigravity/releases/latest";
     private static final String BYPASS_RAW_BASE =
             "https://raw.githubusercontent.com/confeden/Antigravity/main/src/";
-    public static final String APP_GITHUB_REPO = "Bananchik09/antigravity-android";
+    public static final String APP_GITHUB_REPO = "Bananchik0901/antigravity-android";
     private static final String APP_RELEASES_LATEST_URL =
             "https://github.com/" + APP_GITHUB_REPO + "/releases/latest";
     private static final String APP_EXPANDED_ASSETS_URL =
@@ -127,7 +127,7 @@ public final class UpstreamChecker {
             }
         }
 
-        // 3. Check GitHub Releases (Bananchik09/antigravity-android) for full App APK updates
+        // 3. Check GitHub Releases (Bananchik0901/antigravity-android) for full App APK updates
         try {
             checkGitHubAppRelease(res);
         } catch (Exception e) {

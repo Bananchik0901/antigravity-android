@@ -81,7 +81,6 @@ public final class ThemeController {
     /** Called when the Web UI paints a visual theme, without altering user mode preference. */
     public void onVisualThemeChanged(final String visual) {
         final boolean dark = "dark".equalsIgnoreCase(visual);
-        setMode(dark ? ThemeColors.MODE_DARK : ThemeColors.MODE_LIGHT);
         LauncherIconSwitcher.scheduleSwitch(dark);
         final Activity activity = currentContext instanceof Activity
                 ? (Activity) currentContext : null;

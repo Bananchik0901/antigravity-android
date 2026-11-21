@@ -286,7 +286,7 @@ public class MainActivity extends Activity
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-        refreshTheme();
+        refreshTheme(newConfig);
     }
 
     @Override
@@ -319,14 +319,38 @@ public class MainActivity extends Activity
     }
 
     private void refreshTheme() {
+        refreshTheme(null);
+    }
+
+    private void refreshTheme(Configuration newConfig) {
         ThemeRefresher.refresh(this, themeManager, rootLayout, splash, webViewHost);
+        boolean sysDark;
+        if (newConfig != null) {
+            int uiMode = newConfig.uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            if (uiMode == Configuration.UI_MODE_NIGHT_YES) {
+                sysDark = true;
+            } else if (uiMode == Configuration.UI_MODE_NIGHT_NO) {
+                sysDark = false;
+            } else {
+                sysDark = com.agy.theme.ThemeResolver.isDark(com.agy.theme.ThemeColors.MODE_SYSTEM, this);
+            }
+        } else {
+            sysDark = com.agy.theme.ThemeResolver.isDark(com.agy.theme.ThemeColors.MODE_SYSTEM, this);
+        }
+        String sysTheme = sysDark ? "dark" : "light";
         if (themeManager != null) {
-            com.agy.theme.LauncherIconSwitcher.scheduleSwitch(themeManager.isDark());
+            boolean effectiveDark = themeManager.mode() == com.agy.theme.ThemeColors.MODE_SYSTEM
+                    ? sysDark : themeManager.isDark();
+            com.agy.theme.LauncherIconSwitcher.scheduleSwitch(effectiveDark);
         }
         if (webViewHost != null && webViewHost.getWebView() != null) {
-            String resolved = themeManager != null ? themeManager.getTheme() : "light";
+            String resolved = (themeManager != null && themeManager.mode() != com.agy.theme.ThemeColors.MODE_SYSTEM)
+                    ? themeManager.getTheme() : sysTheme;
             webViewHost.getWebView().evaluateJavascript(
-                    "window.__AG_RESOLVED_THEME__='" + resolved + "'; window.__agOnSystemThemeChanged && window.__agOnSystemThemeChanged();", null);
+                    "window.__AG_SYSTEM_THEME__='" + sysTheme + "';"
+                            + "window.__AG_RESOLVED_THEME__='" + resolved + "';"
+                            + "window.__agOnSystemThemeChanged && window.__agOnSystemThemeChanged('" + sysTheme + "');",
+                    null);
         }
     }
 
