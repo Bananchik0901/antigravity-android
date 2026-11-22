@@ -29,6 +29,11 @@ def _patch_desktop_mode(content):
         r"(var\s+[A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==3,\s*[A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==2,\s*[A-Za-z0-9_$]+=[A-Za-z0-9_$]+=>\s*[A-Za-z0-9_$]+=>\{.*?\};)"
     )
     hook_match = hook_pattern.search(content)
+    if not hook_match:
+        hook_pattern_v2 = re.compile(
+            r"([A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==3;\s*var\s+[A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==2;)"
+        )
+        hook_match = hook_pattern_v2.search(content)
 
     theme_idx = content.find('{label:"Theme"')
     theme_match = None
@@ -62,21 +67,25 @@ def _patch_desktop_mode(content):
 
     item_comp = "v3"
     switch_comp = "dX"
-    re_idx = content.find("rightElement:")
-    if re_idx != -1:
+    search_pos = 0
+    while True:
+        re_idx = content.find("rightElement:", search_pos)
+        if re_idx == -1:
+            break
         re_window = content[max(0, re_idx - 150) : min(len(content), re_idx + 150)]
         item_m = re.search(
-            r"([A-Za-z0-9_$]+)\.createElement\(([A-Za-z0-9_$]+),\{label:[^,]+,description:[^,]+,rightElement:",
+            r"([A-Za-z0-9_$]+)\.createElement\(([A-Za-z0-9_$]+),\{label:[^,]+,(?:labelId:[^,]+,)?description:[^,]+,(?:descriptionId:[^,]+,)?rightElement:",
             re_window,
         )
-        if item_m:
-            item_comp = item_m.group(2)
         sw_m = re.search(
             r"rightElement:[A-Za-z0-9_$]+\.createElement\(([A-Za-z0-9_$]+),\{checked:",
             re_window,
         )
-        if sw_m:
+        if item_m and sw_m:
+            item_comp = item_m.group(2)
             switch_comp = sw_m.group(1)
+            break
+        search_pos = re_idx + 13
 
     orig_theme = theme_match.group(0)
     injected_theme = (
@@ -94,21 +103,26 @@ def _patch_desktop_mode(content):
 def _patch_app_and_browser_settings(content):
     # 1. Unhide Application ("App") screen on WebView/mobile hosts
     app_gate_re = re.compile(
-        r"App:\{feature:\{visible:!1\},applyFirst:\[\{runtimeGating:\{host:\[[^\]]+\]\},feature:\{visible:!0\}\}\]\}"
+        r"App:\{feature:\{visible:!1\},applyFirst:\[\{runtimeGating:\{host:\[[^\]]+\]\},feature:\{visible:!0\}\}\](,important:\[[^\]]+\])?\}"
     )
     if app_gate_re.search(content):
-        content = app_gate_re.sub("App:{feature:{visible:!0}}", content, count=1)
+        content = app_gate_re.sub(
+            lambda m: "App:{feature:{visible:!0}" + (m.group(1) or "") + "}",
+            content,
+            count=1,
+        )
         print("[web-patch] Unhid App settings screen")
 
     # 2. Version card prefers window.__APP_CONFIG__?.appVersion
     if "/*ag-app-ver*/" not in content:
         ver_re = re.compile(
-            r'(function\s+[A-Za-z0-9_$]+\(\)\{var\s+\{currentVersion:([A-Za-z0-9_$]+)\}=[A-Za-z0-9_$]+\(\),\{electronNativeFeature:([A-Za-z0-9_$]+)\}=\(0,[A-Za-z0-9_$]+\.useContext\)\([A-Za-z0-9_$]+\);return\(\2=\2\|\|\3\?\.appVersion\)\?)'
+            r'(function\s+[A-Za-z0-9_$]+\(\)\{var\s+\{currentVersion:([A-Za-z0-9_$]+)\}=[A-Za-z0-9_$]+\(\),(?:\{electronNativeFeature:([A-Za-z0-9_$]+)\}=\(0,[A-Za-z0-9_$]+\.useContext\)\([A-Za-z0-9_$]+\)|([A-Za-z0-9_$]+)=[A-Za-z0-9_$]+\(\)\.get\("electronNativeFeature"\));return\(\2=\2\|\|(?:\3|\4)\?\.appVersion\)\?)'
         )
         m = ver_re.search(content)
         if not m:
             raise RuntimeError("App version card anchor not found")
-        cv, enf = m.group(2), m.group(3)
+        cv = m.group(2)
+        enf = m.group(3) or m.group(4)
         old_frag = f"return({cv}={cv}||{enf}?.appVersion)?"
         new_frag = f"return({cv}=window.__APP_CONFIG__?.appVersion||{cv}||{enf}?.appVersion/*ag-app-ver*/)?"
         content = content.replace(old_frag, new_frag, 1)
@@ -125,7 +139,11 @@ def _patch_app_and_browser_settings(content):
             )
             print("[web-patch] Upgraded App version priority")
 
-    # 3. Promote Browser to top-level Settings screen list
+    # 3. Promote Browser to top-level Settings screen list (already built-in on 2.34+)
+    if 'case "Browser":' in content:
+        print("[web-patch] Browser settings screen already built-in upstream")
+        return content
+
     if '{screen:"Browser"}' not in content:
         web_anchor = '[{screen:"General"},{screen:"App",label:"Application"},'
         if web_anchor not in content:
@@ -255,8 +273,8 @@ def _patch_app_and_browser_settings(content):
 
 
 def _patch_mobile_projects_and_conversations(content):
-    if "/*ag-mob-conv*/" in content:
-        print("[web-patch] Mobile Projects / Conversations already patched")
+    if "/*ag-mob-conv*/" in content or '{screen:"Projects"' in content:
+        print("[web-patch] Mobile Projects / Conversations already present")
         return content
 
     # Extract symbols from mNb (desktop settings nav)
@@ -393,7 +411,8 @@ def _patch_plugin_auth_and_install_redirect(content):
         rnb_fn = rnb_m.group(1)
 
     if not rnb_fn:
-        raise RuntimeError("Could not locate plugin auth mode helper (rnb)")
+        print("[web-patch] Plugin auth mode helper (rnb) not present in this bundle; skipping legacy plugin redirect patch")
+        return content
 
     # 3. Poll signInPending providers automatically when tnb mounts
     if "signInPending)" not in content or "/*ag-poll*/" not in content:
@@ -447,9 +466,10 @@ def _patch_plugin_auth_and_install_redirect(content):
         )
         nw_m = nw_re2.search(content)
         if not (jw_m and lr_m and tnb_uk_m and ug_m and nw_m):
-            raise RuntimeError(
-                f"NW post-install anchors missing: jW={bool(jw_m)} lR={bool(lr_m)} uk={bool(tnb_uk_m)} ug={bool(ug_m)} NW={bool(nw_m)}"
+            print(
+                f"[web-patch] Skipping legacy NW post-install redirect (jW={bool(jw_m)} lR={bool(lr_m)} uk={bool(tnb_uk_m)} ug={bool(ug_m)} NW={bool(nw_m)})"
             )
+            return content
 
         jw_fn = jw_m.group(1)
         lr_fn = lr_m.group(1)

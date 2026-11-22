@@ -347,10 +347,17 @@ public class ProxySettingsActivity extends Activity {
     }
 
     private void requestShizukuPermission() {
+        if (checkCallingOrSelfPermission(SHIZUKU_PERM) == PackageManager.PERMISSION_GRANTED) {
+            updateShizukuStatusUi();
+            testShizukuShell();
+            return;
+        }
         try {
-            Intent reqIntent = new Intent("moe.shizuku.privileged.api.intent.action.REQUEST_PERMISSION");
-            reqIntent.setPackage(SHIZUKU_PKG);
-            startActivityForResult(reqIntent, REQ_SHIZUKU);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{SHIZUKU_PERM}, REQ_SHIZUKU);
+            } else {
+                openShizukuApp();
+            }
         } catch (Exception e) {
             openShizukuApp();
         }
@@ -362,6 +369,15 @@ public class ProxySettingsActivity extends Activity {
             startActivity(launch);
         } else {
             Toast.makeText(this, "Приложение Shizuku не установлено", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_SHIZUKU) {
+            updateShizukuStatusUi();
+            testShizukuShell();
         }
     }
 

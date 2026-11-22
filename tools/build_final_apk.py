@@ -17,7 +17,7 @@ CLASSES_JAR = os.path.join(APP_DIR, r"build\classes.jar")
 CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.34.0.2-mobile.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.34.0.3-mobile.apk")
 
 BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -71,8 +71,8 @@ public final class BuildConfig {{
     public static final int PORT_DEV = 45157;
     public static final int GATEWAY_PORT = 45160;
     public static final String CORE_VERSION = "2.34.0";
-    public static final String APP_VERSION_NAME = "2.34.0.2-mobile";
-    public static final int APP_VERSION_CODE = 29;
+    public static final String APP_VERSION_NAME = "2.34.0.3-mobile";
+    public static final int APP_VERSION_CODE = 30;
     public static final String OAUTH_SCHEME = "antigravity";
     public static final String APP_NAME = "Antigravity";
     public static final int MIN_API = 24;
@@ -192,11 +192,15 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
     bypass_cfg_bytes = json.dumps(bypass_cfg_obj, indent=2).encode("utf-8")
     zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
     bypass_ver = bypass_cfg_obj.get("version", "2.34.0")
-    version_meta_bytes = json.dumps({"core_version": "2.34.0", "bypass_version": bypass_ver, "drive_version": "2.34.0.2"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.34.0", "bypass_version": bypass_ver, "drive_version": "2.34.0.3"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with open(os.path.join(APP_DIR, r"web\generated\patches\theme_sync.js"), "r", encoding="utf-8") as f:
         theme_sync_bytes = f.read().replace("\r\n", "\n").encode("utf-8")
+    with open(os.path.join(APP_DIR, r"web\compiled_tailwind.css"), "rb") as f:
+        tailwind_css_bytes = f.read()
+    with open(os.path.join(APP_DIR, r"web\jetbox.css"), "rb") as f:
+        jetbox_css_bytes = f.read()
 
     with zipfile.ZipFile(BASE_APK, "r") as zin:
         for item in zin.infolist():
@@ -212,8 +216,16 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
                 zout.writestr(item, main_js_bytes)
             elif item.filename == "assets/web/generated/patches/theme_sync.js":
                 zout.writestr(item, theme_sync_bytes)
+            elif item.filename == "assets/web/compiled_tailwind.css":
+                zout.writestr(item, tailwind_css_bytes)
+            elif item.filename == "assets/web/jetbox.css":
+                zout.writestr(item, jetbox_css_bytes)
             else:
                 zout.writestr(item, zin.read(item.filename))
+        rish_dex_path = os.path.join(APP_DIR, r"modules\core\shims\privilege\rish_shizuku.dex")
+        if os.path.isfile(rish_dex_path) and "assets/runtime/bin/rish_shizuku.dex" not in zin.namelist():
+            with open(rish_dex_path, "rb") as f:
+                zout.writestr("assets/runtime/bin/rish_shizuku.dex", f.read())
 
 print(f"  Unaligned APK created: {os.path.getsize(OUTPUT_UNALIGNED)} bytes", flush=True)
 

@@ -62,12 +62,36 @@ public final class CoreInstaller {
         OnboardingSeeder.seed(ctx, rm.getAppDataDir(), rm.getProjectsDir());
         // Always ensure fallback shells and open-url shims are installed
         // in runtime/bin immediately regardless of whether the bionic prefix is extracted.
+        ensureRishDex(ctx, rm.getBinDir());
         ShellBridgeInstaller.installFallbackBridges(rm.getBinDir(), ctx);
         ShellBridgeInstaller.installOpenUrlShims(rm.getBinDir(), ctx);
         // If the env prefix survived a previous launch, its bridges are cheap to
         // (re)write now. A fresh env install rewrites them when it finishes.
         if (EnvInstaller.isInstalled(ctx)) {
             ShellBridgeInstaller.install(rm);
+        }
+    }
+
+    private static void ensureRishDex(Context ctx, File binDir) {
+        File dex = new File(binDir, "rish_shizuku.dex");
+        if (dex.isFile() && dex.length() > 0) {
+            return;
+        }
+        try (java.io.InputStream in = ctx.getAssets().open(RuntimePaths.RUNTIME_ASSET + "/bin/rish_shizuku.dex")) {
+            if (!binDir.isDirectory()) {
+                binDir.mkdirs();
+            }
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(dex)) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) {
+                    out.write(buf, 0, n);
+                }
+            }
+            dex.setReadable(true, false);
+            Log.i(TAG, "extracted runtime/bin/rish_shizuku.dex (" + dex.length() + " bytes)");
+        } catch (Exception e) {
+            Log.w(TAG, "could not extract rish_shizuku.dex: " + e.getMessage());
         }
     }
 
