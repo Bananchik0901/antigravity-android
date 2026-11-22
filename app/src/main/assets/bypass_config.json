@@ -1,5 +1,5 @@
 {
-  "version": "2.32.2.1",
+  "version": "2.34.0",
   "proxy_port": 443,
   "alpn": "agu/2",
   "proxy_servers": [],

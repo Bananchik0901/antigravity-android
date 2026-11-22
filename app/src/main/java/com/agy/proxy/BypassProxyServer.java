@@ -57,7 +57,7 @@ public final class BypassProxyServer {
     private volatile int proxyPort = DEFAULT_PROXY_PORT;
     private volatile String alpnProtocol = DEFAULT_ALPN;
     private volatile String[] gateHosts = DEFAULT_GATE_HOSTS;
-    private volatile String bypassVersion = "2.32.2.1";
+    private volatile String bypassVersion = "2.34.0";
 
     private static volatile BypassProxyServer instance;
 
@@ -252,7 +252,21 @@ public final class BypassProxyServer {
         String nonce = k.substring(0, 12);
         String sig = k.substring(12);
 
-        String[] versions = new String[]{"2.31.2", "2.31.1", "2.31.0"};
+        java.util.LinkedHashSet<String> versions = new java.util.LinkedHashSet<>();
+        if (instance != null && instance.bypassVersion != null && !instance.bypassVersion.isEmpty()) {
+            String bv = instance.bypassVersion.trim();
+            String[] parts = bv.split("\\.");
+            if (parts.length >= 2) {
+                versions.add(parts[0] + "." + parts[1]);
+            }
+            versions.add(bv);
+        }
+        versions.add("2.34");
+        versions.add("2.34.0");
+        versions.add("2.32");
+        versions.add("2.31.2");
+        versions.add("2.31.1");
+        versions.add("2.31.0");
         String baseSecret = ")Q.QFyU+oOs#Z:jmtxonGfZi+w#|XG4<";
 
         for (String v : versions) {
@@ -288,7 +302,7 @@ public final class BypassProxyServer {
                     fos.write(clean.getBytes(StandardCharsets.UTF_8));
                     fos.flush();
                 }
-                return "Лицензионный ключ 2.31.2 успешно активирован!";
+                return "Лицензионный ключ 2.34 успешно активирован!";
             } else {
                 throw new IllegalArgumentException("Неверный лицензионный ключ (проверьте символы ключа из группы)");
             }
@@ -300,7 +314,7 @@ public final class BypassProxyServer {
         } else if (clean.startsWith("AGU2")) {
             plaintext = clean;
         } else {
-            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ версии 2.31.2 или токен agk1...)");
+            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ версии 2.34 или токен agk1...)");
         }
 
         File keyFile = new File(context.getFilesDir(), "bypass_key.txt");

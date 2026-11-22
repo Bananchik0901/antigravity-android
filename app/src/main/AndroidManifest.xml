@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.antigravity.mobile"
-    android:versionCode="28"
-    android:versionName="2.34.0.1-mobile">
+    android:versionCode="29"
+    android:versionName="2.34.0.2-mobile">
 
     <!-- targetSdk 28 is REQUIRED: Android 10+ (W^X) only allows exec of a binary
          from the app data dir when the app targets API <= 28. The core + glibc
