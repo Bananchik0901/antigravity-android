@@ -1,11 +1,6 @@
 name: Build and Release Antigravity APKs
 
 on:
-  push:
-    tags:
-      - 'v*'
-    branches:
-      - dev
   workflow_dispatch:
     inputs:
       tag_name:
