@@ -14,7 +14,7 @@
 
   [![Android](https://img.shields.io/badge/Android-7.0--17-3DDC84?style=flat-square&logo=android&logoColor=white)](https://android.com)
   [![Arch](https://img.shields.io/badge/ARM64-v8.0--A%2B-blue?style=flat-square)](https://arm.com)
-  [![Release](https://img.shields.io/badge/Version-2.34.0.3-blueviolet?style=flat-square)](https://github.com/Bananchik0901/antigravity-android/releases)
+  [![Release](https://img.shields.io/badge/Version-2.35.0.0-blueviolet?style=flat-square)](https://github.com/Bananchik0901/antigravity-android/releases)
   [![License](https://img.shields.io/badge/License-Apache_2.0-orange?style=flat-square)](LICENSE)
 
   <br/>
@@ -37,14 +37,14 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 
 ---
 
-### Highlights in v2.34.0.3
+### Highlights in v2.35.0.0
 
-* **Full Web UI `2.34.0` Update:** Synced `main.js`, `compiled_tailwind.css`, and `jetbox.css` directly from upstream Antigravity `2.34.0` (including model & thinking-level selection for orchestrators, native Browser/Projects/Agents/Environments settings) with Android patches adapted for `2.34.0`.
-* **Shizuku Integration Fixed:** Added `moe.shizuku.client.V3_SUPPORT` metadata, `<queries>` package visibility, runtime `API_V23` permission dialog, and bundled `rish_shizuku.dex` auto-extraction (`CoreInstaller.ensureRishDex`) so Antigravity appears in Shizuku's Authorized Apps list and `rish` shell works out of the box.
-* **Bypass synced to `confeden/Antigravity` v2.34.0:** Updated built-in bypass metadata (`2.34.0`) and license key verification to support `MAJOR.MINOR` (`2.34`) salted keys from `@nova_txt`.
+* **Antigravity Core `2.35.0` + Web UI `2.35.0`:** Updated both the native ARM64 Core (`language_server` `2.35.0`) and the embedded Web UI (`main.js`, `compiled_tailwind.css`, `jetbox.css`), adding execution device selection alongside model & thinking-level selection for orchestrators.
+* **Shizuku Integration:** Full `moe.shizuku.client.V3_SUPPORT` + runtime `API_V23` permission dialog + bundled `rish_shizuku.dex` auto-extraction.
+* **Bypass synced to `confeden/Antigravity` v2.34.0:** Built-in bypass metadata (`2.34.0`) and `MAJOR.MINOR` license key verification.
 * **Two APK Editions:**
-  * `Antigravity-2.34.0.3-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
-  * `Antigravity-2.34.0.3-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
+  * `Antigravity-2.35.0.0-mobile.apk` — Bypass edition (`@nova_txt` AGU2 local CONNECT proxy `127.0.0.1:45162`, license key check, binary `cli_gate` / `enterprise_auth` / `ineligible` patches).
+  * `Antigravity-2.35.0.0-vanilla.apk` — Clean Vanilla edition (100% stock `liblanguage_server.so`, direct networking, no proxy).
 * **On-Device Self-Rebuilding Auto-Updater:** Checks Core, Bypass (`confeden/Antigravity`), and full APK releases (`GitHub Releases`), repacks & re-signs the APK on-device (`-autoup` suffix), and supports rollback.
 * **Web UI Enhancements:** Exposed `App` and `Browser` settings, mobile `Projects` and `Not in Project: Conversations`, background WebView stream keep-alive, and automatic loopback plugin OAuth.
 * **Modular Core & ARMv8.0-A Support:** Clean separation into 6 subsystems (`modules/*`), `liblse_compat.so` + `sigill_handler`, and `agy-daemon`.
@@ -64,8 +64,8 @@ No PRoot, chroot, or virtualization overhead. Antigravity runs **bare-metal insi
 ### Quick Start
 
 1. **Download APK** from [Releases](https://github.com/Bananchik0901/antigravity-android/releases):
-   * `Antigravity-2.34.0.3-mobile.apk` — Bypass edition (built-in AGU2 proxy + account gate patches).
-   * `Antigravity-2.34.0.3-vanilla.apk` — Clean Vanilla edition (stock core binary, direct connection).
+   * `Antigravity-2.35.0.0-mobile.apk` — Bypass edition (built-in AGU2 proxy + account gate patches).
+   * `Antigravity-2.35.0.0-vanilla.apk` — Clean Vanilla edition (stock core binary, direct connection).
 2. **Grant Storage Permission** (`All Files Access`). *(Optional: enable Shizuku or Root for elevated shell access)*.
 3. **Install Runtimes** via terminal or agent:
    ```bash

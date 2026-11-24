@@ -9,7 +9,7 @@ import sys
 APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WORK_DIR = os.environ.get("AGY_WORK_DIR", os.path.dirname(APP_DIR))
 BASE_APK = os.environ.get("AGY_BASE_APK", os.path.join(WORK_DIR, "phone_base.apk"))
-STOCK_LS = os.environ.get("AGY_STOCK_LS", os.path.join(WORK_DIR, "language_server_2.34.0.so"))
+STOCK_LS = os.environ.get("AGY_STOCK_LS", os.path.join(WORK_DIR, "language_server_2.35.0.so"))
 RESOURCES_APK = os.path.join(APP_DIR, r"build\base_resources.apk")
 OBJ_DIR = os.path.join(APP_DIR, r"build\obj")
 DEX_DIR = os.path.join(APP_DIR, r"build\dex")
@@ -17,7 +17,7 @@ CLASSES_JAR = os.path.join(APP_DIR, r"build\classes.jar")
 CLASSES_DEX = os.path.join(DEX_DIR, "classes.dex")
 OUTPUT_UNALIGNED = os.path.join(WORK_DIR, "final_unaligned.apk")
 OUTPUT_ALIGNED = os.path.join(WORK_DIR, "final_aligned.apk")
-FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.34.0.3-mobile.apk")
+FINAL_APK = os.path.join(WORK_DIR, r"release\Antigravity-2.35.0.0-mobile.apk")
 
 BUILD_TOOLS = os.environ.get("ANDROID_BUILD_TOOLS", r"C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Data\PlaybackEngines\AndroidPlayer\SDK\build-tools\32.0.0")
 AAPT = os.path.join(BUILD_TOOLS, "aapt.exe")
@@ -70,9 +70,9 @@ public final class BuildConfig {{
     public static final int PORT = 45157;
     public static final int PORT_DEV = 45157;
     public static final int GATEWAY_PORT = 45160;
-    public static final String CORE_VERSION = "2.34.0";
-    public static final String APP_VERSION_NAME = "2.34.0.3-mobile";
-    public static final int APP_VERSION_CODE = 30;
+    public static final String CORE_VERSION = "2.35.0";
+    public static final String APP_VERSION_NAME = "2.35.0.0-mobile";
+    public static final int APP_VERSION_CODE = 31;
     public static final String OAUTH_SCHEME = "antigravity";
     public static final String APP_NAME = "Antigravity";
     public static final int MIN_API = 24;
@@ -192,7 +192,7 @@ with zipfile.ZipFile(OUTPUT_UNALIGNED, "w") as zout:
     bypass_cfg_bytes = json.dumps(bypass_cfg_obj, indent=2).encode("utf-8")
     zout.writestr("assets/bypass_config.json", bypass_cfg_bytes, compress_type=zipfile.ZIP_DEFLATED)
     bypass_ver = bypass_cfg_obj.get("version", "2.34.0")
-    version_meta_bytes = json.dumps({"core_version": "2.34.0", "bypass_version": bypass_ver, "drive_version": "2.34.0.3"}, indent=2).encode("utf-8")
+    version_meta_bytes = json.dumps({"core_version": "2.35.0", "bypass_version": bypass_ver, "drive_version": "2.35.0.0"}, indent=2).encode("utf-8")
     zout.writestr("assets/updater/version_meta.json", version_meta_bytes, compress_type=zipfile.ZIP_DEFLATED)
 
     with open(os.path.join(APP_DIR, r"web\generated\patches\theme_sync.js"), "r", encoding="utf-8") as f:
