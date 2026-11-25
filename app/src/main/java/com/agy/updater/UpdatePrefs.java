@@ -98,7 +98,7 @@ public final class UpdatePrefs {
 
     public static String getInstalledBypassVersion(Context ctx) {
         if (isVanillaBuild()) return "none";
-        String best = "2.34.0";
+        String best = "2.35.0";
         File override = new File(ctx.getFilesDir(), "bypass_config.json");
         if (override.exists()) {
             try (InputStream is = new java.io.FileInputStream(override)) {
