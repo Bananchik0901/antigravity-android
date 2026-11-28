@@ -57,7 +57,7 @@ public final class BypassProxyServer {
     private volatile int proxyPort = DEFAULT_PROXY_PORT;
     private volatile String alpnProtocol = DEFAULT_ALPN;
     private volatile String[] gateHosts = DEFAULT_GATE_HOSTS;
-    private volatile String bypassVersion = "2.35.0";
+    private volatile String bypassVersion = "2.36.0.1";
 
     private static volatile BypassProxyServer instance;
 
@@ -261,6 +261,8 @@ public final class BypassProxyServer {
             }
             versions.add(bv);
         }
+        versions.add("2.36");
+        versions.add("2.36.0");
         versions.add("2.35");
         versions.add("2.35.0");
         versions.add("2.34");
@@ -304,7 +306,7 @@ public final class BypassProxyServer {
                     fos.write(clean.getBytes(StandardCharsets.UTF_8));
                     fos.flush();
                 }
-                return "Лицензионный ключ 2.35 успешно активирован!";
+                return "Лицензионный ключ 2.36 успешно активирован!";
             } else {
                 throw new IllegalArgumentException("Неверный лицензионный ключ (проверьте символы ключа из группы)");
             }
@@ -316,7 +318,7 @@ public final class BypassProxyServer {
         } else if (clean.startsWith("AGU2")) {
             plaintext = clean;
         } else {
-            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ версии 2.35 или токен agk1...)");
+            throw new IllegalArgumentException("Неверный формат ключа (ожидается ключ версии 2.36 или токен agk1...)");
         }
 
         File keyFile = new File(context.getFilesDir(), "bypass_key.txt");
